@@ -229,6 +229,7 @@ mercenary = Survivor("Mercenary", 12, 2.4, 110, 33, 0.6, 0.12, 20, 1, 7)
 #ASSUMPTION - Doesn't account for attack speed
 mercenary_laser_sword = Ability(mercenary, "Laser Sword", 1.0, (3/1.9), 1.3)
 
+
 #---------------------------------------------------------------------------------------------------------
 #MUL-T
 mul_t = Survivor("MUL-T", 11, 2.2, 200, 60, 0.6, 0.12, 12, 1, 7)
