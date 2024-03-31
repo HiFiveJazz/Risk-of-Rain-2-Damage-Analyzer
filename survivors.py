@@ -232,14 +232,17 @@ mercenary_laser_sword = Ability(mercenary, "Laser Sword", 1.0, (3/1.9), 1.3)
 #---------------------------------------------------------------------------------------------------------
 #MUL-T
 mul_t = Survivor("MUL-T", 11, 2.2, 200, 60, 0.6, 0.12, 12, 1, 7)
+
 #Primaries
 mul_t_auto_nailgun= Ability(mul_t, "Auto-Nailgun", 0.6, (12/1), 0.7)
 mul_t_rebar_punch= Ability(mul_t, "Rebar Punch", 1.0, (1/1.8), 6.0)
 mul_t_scap_launcher= Ability(mul_t, "Scrap Launcher", 1.0, (4/2.4), 3.6)
 mul_t_power_saw= Ability(mul_t, "Power-Saw", 1.0, (10/1), 1.0)
+
 #Secondary
 mul_t_blast_canister= Ability(mul_t, "Blast Canister", 1.0, (1/6), 2.2)
 mul_t_blast_bomblets= Ability(mul_t, "Blast Bomblets", 0.3, (5/6), 0.44)
+
 #Utility
 #ASSUMPTION - assumes an enemy is just hit by the ram, not the charge
 mul_t_transport_mode = Ability(mul_t, "Transport Mode", 1.0, (1/6), 2.5)
@@ -247,8 +250,9 @@ mul_t_transport_mode = Ability(mul_t, "Transport Mode", 1.0, (1/6), 2.5)
 #---------------------------------------------------------------------------------------------------------
 #Railgunner
 railgunner = Survivor("Railgunner", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+
 #Primaries
-#M99 Sniper Assumes a Perfect Reload
+#ASSUMPTION: M99 Sniper Assumes a Perfect Reload
 railgunner_xqr_smart_round_system = Ability(railgunner, "XQR Smart Round System", 1.0, (4/1), 1.0)
 railgunner_m99_sniper = Ability(railgunner, "M99 Sniper", 1.0, (1/0.849), 10.0)
 #Acccounts for perfect reload bonus damage
@@ -257,6 +261,7 @@ railgunner_m99_sniper = Ability(railgunner, "M99 Sniper", 1.0, (1/0.849), 10.0)
 railgunner_m99_sniper_perfect_reload = Ability(railgunner, "M99 Sniper, Perfect Reloading", 1.0, (1/0.849), (10.0*5.0))
 #TEST - Wiki doesn't have a definitive value on the prof coeff for HH44
 railgunner_hh44_marksman = Ability(railgunner, "HH44 Marksman", 1.0, (2/1), 4.0)
+
 #Specials
 #TEST - Need to verify that weak point damage is multiplicative, not additive
 railgunner_supercharge = Ability(railgunner, "Supercharge", 3.0, 15, (40.0*1.5))
@@ -266,6 +271,7 @@ railgunner_cryocharge = Ability(railgunner, "Cryocharge", 1.5, 15, 20.0)
 #---------------------------------------------------------------------------------------------------------
 #REX
 rex = Survivor("REX", 12, 2.4, 130, 39, 0.6, 0.12, 20, 1, 7)
+
 #Primary
 #ASSUMPTION - Assumes the time to fire one burst is 0.8 seconds based on the wiki
 rex_directive_inject = Ability(rex, "DIRECTIVE: Inject", 0.5, (3/0.8), 0.8) 
@@ -273,6 +279,7 @@ rex_directive_inject = Ability(rex, "DIRECTIVE: Inject", 0.5, (3/0.8), 0.8)
 #---------------------------------------------------------------------------------------------------------
 #Void Fiend
 void_fiend = Survivor("V??oid Fiend", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+
 #Primaries
 void_fiend_drown = Ability(void_fiend, "Drown", 1.0, (5/3), 3.0) 
 #ASSUMPTION - Does not account for piercing
