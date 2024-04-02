@@ -75,6 +75,7 @@ artificer_charged_nano_bomb_spark_min = Ability(artificier, "Charged Nano-Bomb S
 artificer_cast_nano_spear_max = Ability(artificier, "Cast Nano-Spear (Max)", 1.0, (1/5), 12.0) 
 artificer_cast_nano_spear_min = Ability(artificier, "Cast Nano-Spear (Min)", 1.0, (1/5), 4.0) 
 
+
 #Utility
 #ASSUMPTION: assumes all 12 pillars hit (1.0 * 12)
 artificer_snapfreeze = Ability(artificier, "Snapfreeze", (1.0*12), (1/12), 1.0) 
