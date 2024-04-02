@@ -41,6 +41,27 @@ class Ability:
         self.attack_speed = attack_speed
         self.damage_multiplier = damage_multiplier
 
+class Ally:
+    def __init__(self,
+                 name,
+                 base_damage,
+                 damage_growth_per_level,
+                 hp,
+                 hp_growth,
+                 hp_regen,
+                 hp_regen_growth,
+                 armor,
+                 level,
+                 ms):
+        self.base_damage = base_damage 
+        self.damage_growth_per_level= damage_growth_per_level 
+        self.hp = hp 
+        self.hp_growth = hp_growth 
+        self.hp_regen = hp_regen
+        self.hp_regen_growth = hp_regen_growth
+        self.armor = armor
+        self.level = level
+        self.ms = ms
 #Creating Survivors and Abilities
 #---------------------------------------------------------------------------------------------------------
 #Acrid
@@ -286,3 +307,23 @@ void_fiend = Survivor("V??oid Fiend", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
 void_fiend_drown = Ability(void_fiend, "Drown", 1.0, (5/3), 3.0) 
 #ASSUMPTION - Does not account for piercing
 void_fiend_corrupted_drown = Ability(void_fiend, "Corrupted Drown", 0.625, (8/1), 20.0) 
+
+#---------------------------------------------------------------------------------------------------------
+#Allies
+
+# Col. Droneman (Spare Drone Parts)
+col_droneman = Ally("Col. Droneman", 12, 2, 180, 54, 9, 1.8, 0, 1, 20)
+
+# Beetle Guard (Queen's Gland)
+beetle_guard =  Ally("Beetle Guard (Ally)", 48, 9.6, 960, 288, 1.5, 0.3, 0, 1, 17)
+
+# Aurelionite (Halcyon Seed)
+aurelionite = Ally("Aurelionite", 40, 8, 2100, 630, 0, 0, 20, 1, 5)
+
+#Empathy Cores ()
+delighted_probe = Ally("Delighted Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
+quiet_probe = Ally("Quiet Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
+
+# Alpha Construct (Defense Nucleus)
+
+alpha_construct = Ally("Alpha Construct", 48, 9.6, 400, 120, 0, 0, 0, 1, 0)
