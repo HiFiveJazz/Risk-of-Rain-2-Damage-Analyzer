@@ -1,1 +1,1 @@
-Currently learning React and django to begin to design the website for this project
+implementing backend, will learn front-end React when time comes
