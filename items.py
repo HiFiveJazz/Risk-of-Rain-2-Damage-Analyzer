@@ -251,16 +251,6 @@ nkuhanas_retort = "N'kuhana's Retort"
 spectral_circlet = "Spectral Circlet"
 fuel_array = "Fuel Array"
 
-
-
-
-
-
-
-
-
-
-
     Proc_Coeffecient_Item = 0.05, 0
 Linear = stack * item
 Hyperbolic = (1-(1/(probability.item + 1)))
