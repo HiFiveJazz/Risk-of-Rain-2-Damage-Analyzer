@@ -325,5 +325,4 @@ delighted_probe = Ally("Delighted Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 quiet_probe = Ally("Quiet Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 
 # Alpha Construct (Defense Nucleus)
-
 alpha_construct = Ally("Alpha Construct", 48, 9.6, 400, 120, 0, 0, 0, 1, 0)

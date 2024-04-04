@@ -3,16 +3,6 @@ import random
 # green items -> 20%
 # white items -> 79%
 
-class Environment:
-    def __init__(self, 
-                 stage_number,
-                 time,
-                 number_of_chests):
-
-        self.stage_number = stage_number 
-        self.time = time 
-        self.number_of_chests = number_of_chests 
-    
 class Difficulty:
     def __init__(self, 
                  items,
@@ -79,31 +69,37 @@ difficulties = ['Drizzle', 'Rainstorm', 'Monsoon', 'Eclipse']
 #Choose inital difficulty
 
 #Implementation of terminal use of code
-try:
-    while True:
-            print("Choose a difficulty:")
-            difficulty_value = input("Drizzle (1), Rainstorm (2), or Monsoon (3)?\n")
-            try:
-                difficulty_value = int(difficulty_value)
-                if difficulty_value in [1, 2, 3]:
-                    print(difficulty_value)
-                    player_count = input("How many people are you playing with? (0 if single player)\n")
-                    try:
-                        player_count = int(player_count)
-                        if type(player_count) == int:
-                            print('success')
-                            print(player_count)
-                            break
-                    except ValueError:
-                        print("Invalid. Please input a number for the number of players (0 if singleplayer)")
-            except ValueError:
-                print("Invalid Input. Please input a number, 1 -3, for difficulty.")
-except KeyboardInterrupt:
-    print("\nThanks for playing!")
-print('test')
-    # player_factor = 1 + (3 * (player_count - 1))
-    # time_factor = 0.0506 * difficulty_value * (player_count^0.2)
-    # stage_factor = (1.15^stages_completed)
-    # difficulty_coeffecient = (player_factor + time_factor + stage_factor)
+def get_difficulty_and_player_count():
+    try:
+        while True:
+                print("Choose a difficulty:")
+                difficulty_value = input("Drizzle (1), Rainstorm (2), or Monsoon (3)?\n")
+                try:
+                    difficulty_value = int(difficulty_value)
+                    if difficulty_value in [1, 2, 3]:
+                        player_count = input("How many people are you playing with? (0 if single player)\n")
+                        try:
+                            player_count = int(player_count)
+                            if type(player_count) == int:
+                                print('success')
+                                break
+                        except ValueError:
+                            print("Invalid. Please input a number for the number of players (0 if singleplayer)")
+                except ValueError:
+                    print("Invalid Input. Please input a number, 1 -3, for difficulty.")
+    except KeyboardInterrupt:
+        print("\nThanks for playing!")
+    return [player_count, difficulty_value]
 
+[player_count, difficulty_value] = get_difficulty_and_player_count()
 
+# Calculating the Difficulty Coeffecient
+player_factor = 1 + (3 * (player_count - 1))
+time_factor = 0.0506 * difficulty_value * (player_count ** 0.2)
+# print(time_factor)
+stages_completed = 1
+stage_factor = (1.15 ** stages_completed)
+difficulty_coeffecient = (player_factor + time_factor + stage_factor)
+
+chests = 2
+def Item_Acquistion_Simulator():
