@@ -217,17 +217,13 @@ lepton_daisy = pc_item("Lepton Daisy",
                   ['Linear'],
                   ['Healing', 'AIBlacklist', 'TurretBlacklist', 'HoldoutZoneRelated'])
 razorwire = pc_item("Razorwire",
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  'OnTakingHit', 
+                  ['Targets','Radius'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Targets', 5, 'Linear', 2
-'Radius', 25, 'Linear', 10
-
-
+                  [5,25],
+                  [2,10], 
+                  ['Linear', 'Linear'],
+                  ['Damage','AIBlacklist'])
 #-----STOPPING POINT-----------
 ghors_tome = "Ghors Tome"
 red_whip = pc_item('Red Whip', 
