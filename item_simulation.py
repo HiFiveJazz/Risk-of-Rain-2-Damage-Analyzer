@@ -55,12 +55,12 @@ encrusted_cache = Chest('Encrusted Cache', 0, 0, 0, 1.0, 0, 50, 'Void')
 crashed_multishop_deliver = Chest('Encrusted Cache', 0, 0, 0, 1.0, 0, 50, 'Void')
 
 #Adjust based on each patch
-# total_white_item_count
-# total_green_item_count
-# total_red_item_count
-# total_yellow_item_count
-# total_void_item_count
-# total_lunar_item_count
+total_white_item_count = 29 
+total_green_item_count = 29 
+total_red_item_count = 
+total_yellow_item_count =
+total_void_item_count =
+total_lunar_item_count =
 # Not sure if I should be accounting for cloaked chests
 # cloaked_chest = ?
 
@@ -103,3 +103,11 @@ difficulty_coeffecient = (player_factor + time_factor + stage_factor)
 
 chests = 2
 def Item_Acquistion_Simulator():
+    while True:
+        input = input("Open a small chest? (y/n)")
+        try: 
+            if input == 'y'
+
+            else if input == 'n'
+                break
+
