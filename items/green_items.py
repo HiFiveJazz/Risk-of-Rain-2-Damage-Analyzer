@@ -10,13 +10,13 @@ class pc_item:
                  proc_add_list,
                  tag):
 
+        self.name = name
         self.chance = chance
         self.stat_list = stat_list
         self.proc_cofficient = proc_coefficient 
         self.proc_add_list = proc_add_list
         self.damage = damage
         self.damage_increase_per_stack = damage_increase_per_stack
-        self.proc_add_list = proc_add_list
         self.tag = tag 
 
 class utility_item:
@@ -225,70 +225,57 @@ razorwire = pc_item("Razorwire",
                   ['Linear', 'Linear'],
                   ['Damage','AIBlacklist'])
 #-----STOPPING POINT-----------
-ghors_tome = "Ghors Tome"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+ghors_tome = pc_item("Ghors Tome",
+                  'OnKillEffect', 
+                  ['Drop Chance'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Drop Chance', 0.04, 'Linear', 4
-squid_polyp = "Squid Polyp"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  [0.04],
+                  [0.04], 
+                  ['Linear'],
+                  ['Utility', 'OnKillEffect'])
+squid_polyp = pc_item("Squid Polyp",
+                  'OnUse', 
+                  ['Attack Speed'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Attack Speed', 1.0, 'Linear', 1.0
-death_mark = "Death Mark"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  [1.0],
+                  [1.0], 
+                  ['Linear'],
+                  ['Damage', 'AIBlacklist', 'InteractableRelated', 'Automation Activation'])
+death_mark = pc_item("Death Mark",
+                  'On4Debuff', 
+                  ['Debuff Duration'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Debuff Duration', 7, 'Linear', 7
-hunters_harpoon = "Hunter's Harpoon"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  [7],
+                  [7], 
+                  ['Linear'],
+                  ['Damage'])
+hunters_harpoon = pc_item("Hunter's Harpoon",
+                  'OnKillEffect', 
+                  ['Duration'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Duration', 1, 'Linear', 0.5
-ignition_tank = "Ignition Tank"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  [1],
+                  [0.5], 
+                  ['Linear'],
+                  ['Utility', 'OnKillEffect'])
+ignition_tank = pc_item("Ignition Tank",
+                  'OnIgnite', 
+                  ['Damage'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Damage', 3.0, 'Linear', 3.0
-shuriken = "Shuriken"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
-                  ['Movement Speed'],  
+                  [3.0],
+                  [3.0], 
+                  ['Linear'],
+                  ['Damage'])
+shuriken = pc_item("Shuriken",
+                  'OnPrimarySkill', 
+                  ['Damage', 'Shurikens'],  
                   0, #Unknown, address 
-                  [0.30],
-                  [0.30], 
-                  ['Linear', 'Addition'],
-                  ['Utility'])
-'Damage', 4.0, 'Linear', 1.0
-'Shurikens', 3, 'Linear', 1
-regenerating_scrap = "Regeneration Scrap"
-red_whip = pc_item('Red Whip', 
-                  'OnOutOfCombat', 
+                  [4.0, 3],
+                  [1.0, 1], 
+                  ['Linear', 'Linear'],
+                  ['Damage'])
+#Item based items
+regenerating_scrap = ("Regeneration Scrap",
+                  'OnStageBeginEffect', 
                   ['Movement Speed'],  
                   0, #Unknown, address 
                   [0.30],
