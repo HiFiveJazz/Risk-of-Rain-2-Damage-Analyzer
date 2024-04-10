@@ -34,33 +34,10 @@ class Chest:
         self.base_cost = base_cost 
         self.item_type = item_type
 
-total_white_item_count = 29 
-total_green_item_count = 29 
-total_red_item_count = 27 
-# total_yellow_item_count =
-total_void_item_count = 13 #Does not count Newly Hatched Zoea
-total_lunar_item_count = 22
-total_equipment_count = 25 #Does not count items that cannot drop from equipment barrels
-def determine_item(Chest):
-    denominator = (Chest.probability_orange*total_equipment_count +  
-                          Chest.probability_white*total_white_item_count +
-                          Chest.proability_green*total_green_item_count +
-                          Chest.probability_red*total_red_item_count +
-                          Chest.probability_void*total_void_item_count)
-    probability_orange = (Chest.probability_orange*total_equipment_count/denominator)
-    probability_white = (Chest.probability_white*total_white_item_count/denominator)
-    probability_green = (Chest.probability_green*total_green_item_count/denominator)
-    probability_red = (Chest.probability_red*total_red_item_count/denominator)
-    probability_void = (Chest.probability_void *total_void_item_count/denominator)
-    probabilities = [probability_white, 
-                     probability_green, 
-                     probability_red, 
-                     probability_orange,
-                     probability_void]
-
 small_chest = Chest('Small Chest', 0.792, 0.198, 0.099, 0, 0, 25, 'Regular')
 large_chest = Chest('Large Chest', 0, 0.8, 0.2, 0, 0, 50, 'Regular')
-equipment_barrel = Chest('Equipment Barrel', 0, 0, 0, 1.0, 0, 25, 'Equipment')
+large_chest = Chest('Large Chest', 0, 0, 0, 1, 0, 50, 'Regular')
+equipment_barrel = Chest('Equipment Barrel', 0, 0, 0, 1.0, 1.0, 25, 'Equipment')
 legendary_chest = Chest('Legendary Chest', 0, 0.198, 0.099, 0, 0, 400, 'Red')
 multishop_green = Chest('Multishop', 0, 0.198, 0.099, 0, 0, 400, 'Common & Uncommon')
 equipment_multishop = Chest('Equipement Multishop', 0, 0, 0, 1.0, 0, 50, 'Common & Uncommon')
@@ -79,16 +56,46 @@ encrusted_cache = Chest('Encrusted Cache', 0, 0, 0, 1.0, 0, 50, 'Void')
 crashed_multishop_deliver = Chest('Encrusted Cache', 0, 0, 0, 1.0, 0, 50, 'Void')
 
 #Adjust based on each patch
-total_white_item_count = 29 
-total_green_item_count = 29 
-total_red_item_count = 27 
-# total_yellow_item_count =
-total_void_item_count = 13 #Does not count Newly Hatched Zoea
-total_lunar_item_count = 22
-total_equipment_count = 25 #Does not count items that cannot drop from equipment barrels
 # Not sure if I should be accounting for cloaked chests
 # cloaked_chest = ?
 
+def determine_item(Chest):
+    #Defining the number of items, update every major update for Risk of Rain 2
+    total_white_item_count = 29 
+    total_green_item_count = 29 
+    total_red_item_count = 27 
+# total_yellow_item_count =
+    total_void_item_count = 13 #Does not count Newly Hatched Zoea
+    total_lunar_item_count = 22
+    total_equipment_count = 25 #Does not count items that cannot drop from equipment barrels
+    denominator = (Chest.probability_orange*total_equipment_count +  
+                          Chest.probability_white*total_white_item_count +
+                          Chest.probability_green*total_green_item_count +
+                          Chest.probability_red*total_red_item_count +
+                          Chest.probability_void*total_void_item_count)
+    probability_orange = (Chest.probability_orange*total_equipment_count/denominator)
+    probability_white = (Chest.probability_white*total_white_item_count/denominator)
+    probability_green = (Chest.probability_green*total_green_item_count/denominator)
+    probability_red = (Chest.probability_red*total_red_item_count/denominator)
+    probability_void = (Chest.probability_void *total_void_item_count/denominator)
+    items = ['white', 'green', 'red', 'orange', 'void']
+    probabilities = [probability_white, 
+                     probability_green, 
+                     probability_red, 
+                     probability_orange,
+                     probability_void]
+    color_codes = {
+            'white': '\033[0m',   # Reset color
+            'green': '\033[92m',  # Green
+            'red': '\033[91m',    # Red
+            'orange': '\033[93m', # Orange
+            'void': '\033[35m',   # Purple
+            'lunar': '\033[94m'   # Blue 
+        }
+    selected_item = random.choices(items, weights=probabilities, k=1)[0]
+    print("Selected item:", color_codes[selected_item] + selected_item.capitalize())
+
+determine_item(large_chest)
 #Implementation of terminal use of code
 def get_difficulty_and_player_count():
     try:
@@ -137,8 +144,7 @@ def select_items():
         return None, None
     return [player_count, difficulty_value]
     
-[player_count, difficulty_value] = get_difficulty_and_player_count()
-#
+# [player_count, difficulty_value] = get_difficulty_and_player_count()
 # # Calculating the Difficulty Coeffecient
 # player_factor = 1 + (3 * (player_count - 1))
 # time_factor = 0.0506 * difficulty_value * (player_count ** 0.2)
