@@ -34,8 +34,32 @@ class Chest:
         self.base_cost = base_cost 
         self.item_type = item_type
 
+total_white_item_count = 29 
+total_green_item_count = 29 
+total_red_item_count = 27 
+# total_yellow_item_count =
+total_void_item_count = 13 #Does not count Newly Hatched Zoea
+total_lunar_item_count = 22
+total_equipment_count = 25 #Does not count items that cannot drop from equipment barrels
+def determine_item(Chest):
+    denominator = (Chest.probability_orange*total_equipment_count +  
+                          Chest.probability_white*total_white_item_count +
+                          Chest.proability_green*total_green_item_count +
+                          Chest.probability_red*total_red_item_count +
+                          Chest.probability_void*total_void_item_count)
+    probability_orange = (Chest.probability_orange*total_equipment_count/denominator)
+    probability_white = (Chest.probability_white*total_white_item_count/denominator)
+    probability_green = (Chest.probability_green*total_green_item_count/denominator)
+    probability_red = (Chest.probability_red*total_red_item_count/denominator)
+    probability_void = (Chest.probability_void *total_void_item_count/denominator)
+    probabilities = [probability_white, 
+                     probability_green, 
+                     probability_red, 
+                     probability_orange,
+                     probability_void]
+
 small_chest = Chest('Small Chest', 0.792, 0.198, 0.099, 0, 0, 25, 'Regular')
-large_chest = Chest('Large Chest', 0, 0.198, 0.099, 0, 0, 50, 'Regular')
+large_chest = Chest('Large Chest', 0, 0.8, 0.2, 0, 0, 50, 'Regular')
 equipment_barrel = Chest('Equipment Barrel', 0, 0, 0, 1.0, 0, 25, 'Equipment')
 legendary_chest = Chest('Legendary Chest', 0, 0.198, 0.099, 0, 0, 400, 'Red')
 multishop_green = Chest('Multishop', 0, 0.198, 0.099, 0, 0, 400, 'Common & Uncommon')
@@ -57,16 +81,13 @@ crashed_multishop_deliver = Chest('Encrusted Cache', 0, 0, 0, 1.0, 0, 50, 'Void'
 #Adjust based on each patch
 total_white_item_count = 29 
 total_green_item_count = 29 
-total_red_item_count = 
-total_yellow_item_count =
-total_void_item_count =
-total_lunar_item_count =
+total_red_item_count = 27 
+# total_yellow_item_count =
+total_void_item_count = 13 #Does not count Newly Hatched Zoea
+total_lunar_item_count = 22
+total_equipment_count = 25 #Does not count items that cannot drop from equipment barrels
 # Not sure if I should be accounting for cloaked chests
 # cloaked_chest = ?
-
-
-difficulties = ['Drizzle', 'Rainstorm', 'Monsoon', 'Eclipse']
-#Choose inital difficulty
 
 #Implementation of terminal use of code
 def get_difficulty_and_player_count():
@@ -89,25 +110,50 @@ def get_difficulty_and_player_count():
                     print("Invalid Input. Please input a number, 1 -3, for difficulty.")
     except KeyboardInterrupt:
         print("\nThanks for playing!")
+        return None, None
     return [player_count, difficulty_value]
 
+    
+def select_items():
+    try:
+        while True:
+                print("Choose a difficulty:")
+                difficulty_value = input("Drizzle (1), Rainstorm (2), or Monsoon (3)?\n")
+                try:
+                    difficulty_value = int(difficulty_value)
+                    if difficulty_value in [1, 2, 3]:
+                        player_count = input("How many people are you playing with? (0 if single player)\n")
+                        try:
+                            player_count = int(player_count)
+                            if type(player_count) == int:
+                                print('success')
+                                break
+                        except ValueError:
+                            print("Invalid. Please input a number for the number of players (0 if singleplayer)")
+                except ValueError:
+                    print("Invalid Input. Please input a number, 1 -3, for difficulty.")
+    except KeyboardInterrupt:
+        print("\nThanks for playing!")
+        return None, None
+    return [player_count, difficulty_value]
+    
 [player_count, difficulty_value] = get_difficulty_and_player_count()
-
-# Calculating the Difficulty Coeffecient
-player_factor = 1 + (3 * (player_count - 1))
-time_factor = 0.0506 * difficulty_value * (player_count ** 0.2)
-# print(time_factor)
-stages_completed = 1
-stage_factor = (1.15 ** stages_completed)
-difficulty_coeffecient = (player_factor + time_factor + stage_factor)
-
-chests = 2
-def Item_Acquistion_Simulator():
-    while True:
-        input = input("Open a small chest? (y/n)")
-        try: 
-            if input == 'y'
-
-            else if input == 'n'
-                break
+#
+# # Calculating the Difficulty Coeffecient
+# player_factor = 1 + (3 * (player_count - 1))
+# time_factor = 0.0506 * difficulty_value * (player_count ** 0.2)
+# # print(time_factor)
+# stages_completed = 1
+# stage_factor = (1.15 ** stages_completed)
+# difficulty_coeffecient = (player_factor + time_factor + stage_factor)
+#
+# chests = 2
+# def Item_Acquistion_Simulator():
+#     while True:
+#         input = input("Open a small chest? (y/n)")
+#         try: 
+#             if input == 'y'
+#
+#             else if input == 'n'
+#                 break
 
