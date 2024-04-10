@@ -224,7 +224,6 @@ razorwire = pc_item("Razorwire",
                   [2,10], 
                   ['Linear', 'Linear'],
                   ['Damage','AIBlacklist'])
-#-----STOPPING POINT-----------
 ghors_tome = pc_item("Ghors Tome",
                   'OnKillEffect', 
                   ['Drop Chance'],  
@@ -274,6 +273,7 @@ shuriken = pc_item("Shuriken",
                   ['Linear', 'Linear'],
                   ['Damage'])
 #Item based items
+#-----STOPPING POINT-----------
 regenerating_scrap = ("Regeneration Scrap",
                   'OnStageBeginEffect', 
                   ['Movement Speed'],  

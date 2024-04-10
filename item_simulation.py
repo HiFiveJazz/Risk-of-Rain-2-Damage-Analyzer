@@ -93,7 +93,7 @@ def determine_item(Chest):
             'lunar': '\033[94m'   # Blue 
         }
     selected_item = random.choices(items, weights=probabilities, k=1)[0]
-    print("Selected item:", color_codes[selected_item] + selected_item.capitalize())
+    print("Obtained:", color_codes[selected_item] + selected_item.capitalize())
 
 determine_item(large_chest)
 #Implementation of terminal use of code
