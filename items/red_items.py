@@ -145,7 +145,7 @@ brainstalks = pc_item("Brainstalks",
                       ['Utility','AIBlacklist','OnKillEffect'])
 rejuvenation_rack = pc_item("Rejuvenation Rack",
                             'OnPermanent',
-                            'Heal', 
+                            ['Heal'], 
                             None,
                             [1.0], 
                             [1.0], 
@@ -168,24 +168,77 @@ shattering_justice = pc_item("Shattering Justice",
                              ['Linear'], 
                              ['Damage'])
 resonance_disc = pc_item("Resonance Disc",
-'Damage', 3.0, 'Linear', 3.0
-'Explosion', 10.0, 'Linear', 10.0
-interstellar_desk_plant = "Interstellar Desk Plant"
-'Radius', 5, 'Linear', 5
-defensive_microbots = "Defensive Microbots"
-'Projectiles Shot', 1, 'Linear', 1
-laser_scope = "Laser Scope"
-'Damage', 1.0, 'Linear', 1.0
-pocket_icbm = "Pocket I.C.B.M."
-'Damage', 0, 'Linear', 0.5
-'Extra Missiles', 2, None, None
-spare_drone_parts = "Spare Drone Parts"
-'Attack Speed', 0.5, 'Linear', 0.5
-symbiotic_scorpion = "Symbiotic Scorpion"
-'Armor Reduction', 2, 'Linear', 2
-bens_raincoat = "Ben's Raincoat"
-'Debuffs Blocked', 1, 'Linear', 1
-'Cooldown', 5, None, None
-bottled_chaos = "Bottled Chaos"
-'Effects', 1, 'Linear', 1
+                         'OnKill4in7',
+                         ['Damage', 'Explosion'],
+                         1.0,
+                         [3.0,10.0], 
+                         [3.0,10.0], 
+                         ['Linear', 'Linear'],
+                         ['Damage','OnKillEffect'])
+interstellar_desk_plant = pc_item("Interstellar Desk Plant",
+                                  'OnKillEffect',
+                                  ['Radius'], 
+                                  None,
+                                  [5], 
+                                  [5], 
+                                  ['Linear'], 
+                                  ['Healing','OnKillEffect'])
+defensive_microbots = pc_item("Defensive Microbots",
+                              'OnPermanent',
+                              ['Projectiles Shot'], 
+                              None,
+                              [1.0], 
+                              [1.0], 
+                              ['Linear'], 
+                              ['Utility', 'WorldUnique'])
+laser_scope = pc_item("Laser Scope",
+                      'OnCrit',
+                      ['Damage'], 
+                      None,
+                      [1.0], 
+                      [1.0], 
+                      ['Linear'], 
+                      ['Damager'])
+pocket_icbm = pc_item("Pocket I.C.B.M.",
+                      'OnMissile',
+                      ['Damage','Extra Missiles'], 
+                      None,
+                      [0, 2], 
+                      [50, None], 
+                      ['Linear','None'], 
+                      ['Damage'])
+spare_drone_parts = pc_item("Spare Drone Parts",
+                            'OnPermanent',
+                            ['Attack Speed'], 
+                            None,
+                            0.5, 
+                            0.5, 
+                            ['Linear'], 
+                            ['Damage','AIBlacklist','TurretBlacklist','BrotherBlacklist'])
+symbiotic_scorpion = pc_item("Symbiotic Scorpion",
+                             'OnHit',
+                             ['Armor Reduction'], 
+                             None,
+                             2.0, 
+                             2.0, 
+                             ['Linear'], 
+                             ['Damage'])
+bens_raincoat = pc_item("Ben's Raincoat",
+                        'OnDebuff',
+                        ['Debuffs Blocked','Cooldown'], 
+                        None,
+                        [1.0,5], 
+                        [1.0,None], 
+                        ['Linear', None], 
+                        ['Utility','Healing'])
+
+bottled_chaos = pc_item("Bottled Chaos",
+                        'OnEquipment',
+                        'Effects', 
+                        None,
+                        [1], 
+                        [1], 
+                        ['Linear'], 
+                        ['Utility','EquipmentRelated'])
+#--------STOPPING POINT----------
 item_scrap_red = "Item Scrap, Red"
