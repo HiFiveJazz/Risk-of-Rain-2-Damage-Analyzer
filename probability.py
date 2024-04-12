@@ -81,9 +81,6 @@ def rest_chain_prob(value):
     return b
             
 
-
-
-
 result = permute(items)
 value = translate_to_numbers(result)
 answer = max_chain_prob(value)
