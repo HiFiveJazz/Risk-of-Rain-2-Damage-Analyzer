@@ -77,10 +77,8 @@ def rest_chain_prob(value):
             result = first_product * last_product
             b.append(result*100)
         n=n+2
-
     return b
             
-
 result = permute(items)
 value = translate_to_numbers(result)
 answer = max_chain_prob(value)
