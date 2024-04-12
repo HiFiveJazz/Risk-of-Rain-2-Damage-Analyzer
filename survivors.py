@@ -30,12 +30,12 @@ class Survivor:
 
 class Ability:
     def __init__(self,
-                 Survivor,
+                 survivor,
                  ability_type,
                  proc_coeffecient,
                  attack_speed,
                  damage_multiplier):
-        self.survivor = Survivor
+        self.survivor = survivor
         self.ability_type =  ability_type
         self.proc_coefficient = proc_coeffecient
         self.attack_speed = attack_speed

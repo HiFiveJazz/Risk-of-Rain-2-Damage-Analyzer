@@ -5,19 +5,21 @@ class pc_item:
                  chance,
                  stat_list,
                  proc_coefficient,
-                 damage,
-                 damage_increase_per_stack,
-                 proc_add_list,
-                 tag):
+                 value,
+                 value_increase_per_stack,
+                 scaling_type,
+                 tag,
+                 number):
 
         self.name = name
         self.chance = chance
         self.stat_list = stat_list
         self.proc_cofficient = proc_coefficient 
-        self.proc_add_list = proc_add_list
-        self.damage = damage
-        self.damage_increase_per_stack = damage_increase_per_stack
+        self.value = value
+        self.value_increase_per_stack = value_increase_per_stack
+        self.scaling_type = scaling_type 
         self.tag = tag 
+        self.number = number
 
 soldier_syringe = pc_item('Soldier Syringe',
                           'Permanent',
@@ -26,7 +28,9 @@ soldier_syringe = pc_item('Soldier Syringe',
                           [0.15],
                           [0.15],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                          0)
+
 tougher_times = pc_item('Tougher Times',
                           'Permanent',
                           ['Block Chance'],
@@ -34,7 +38,8 @@ tougher_times = pc_item('Tougher Times',
                           [0.15],
                           [0.15],
                           ['Hyperbolic'],
-                          ['Utility', 'BrotherBlacklist'])
+                          ['Utility', 'BrotherBlacklist'],
+                        0)
 
 monster_tooth = pc_item('Monster Tooth',
                           'OnKillEffect',
@@ -43,7 +48,8 @@ monster_tooth = pc_item('Monster Tooth',
                           [0.02],
                           [0.02],
                           ['Linear'],
-                          ['Healing', 'OnKillEffect'])
+                          ['Healing', 'OnKillEffect'],
+                        0)
 lens_makers_glasses = pc_item("Lens-Maker's Glasses",
                           'OnAttack',
                           ['Critical Chance'],
@@ -51,7 +57,8 @@ lens_makers_glasses = pc_item("Lens-Maker's Glasses",
                           [0.10],
                           [0.10],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                        0)
 pauls_goat_hoof = pc_item("Paul's Goat Hoof",
                           'OnMove',
                           ['Movement Speed'],
@@ -59,7 +66,8 @@ pauls_goat_hoof = pc_item("Paul's Goat Hoof",
                           [0.14],
                           [0.14],
                           ['Linear'],
-                          ['Utility'])
+                          ['Utility'],
+                          0)
 bustling_fungus = pc_item('Bustling Fungus',
                           'OnStandStill',
                           ['Health per Second'],
@@ -67,7 +75,8 @@ bustling_fungus = pc_item('Bustling Fungus',
                           [0.045],
                           [0.0225],
                           ['Linear'],
-                          ['Healing', 'AIBlacklist'])
+                          ['Healing', 'AIBlacklist'],
+                          0)
 crowbar = pc_item('Crowbar',
                           'On90%HP',
                           ['Damage'],
@@ -75,7 +84,8 @@ crowbar = pc_item('Crowbar',
                           [0.75],
                           [0.75],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                  0)
 tri_tip_dagger = pc_item('Tri-Tip Dagger',
                           'OnAttack',
                           ['Chance to Bleed'],
@@ -83,7 +93,8 @@ tri_tip_dagger = pc_item('Tri-Tip Dagger',
                           [0.10],
                           [0.10],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                         0)
 warbanner = pc_item('Warbanner',
                           'OnLevelUp',
                           ['Radius'],
@@ -91,7 +102,8 @@ warbanner = pc_item('Warbanner',
                           [16],
                           [8],
                           ['Linear'],
-                          ['Utility', 'AIBlacklist', 'TurretBlacklist'])
+                          ['Utility', 'AIBlacklist', 'TurretBlacklist'],
+                    0)
 cautious_slug = pc_item('Cautious Slug',
                           'OnOutsideCombat',
                           ['Health Regen'],
@@ -99,7 +111,8 @@ cautious_slug = pc_item('Cautious Slug',
                           [3],
                           [3],
                           ['Linear'],
-                          ['Healing'])
+                          ['Healing'],
+                        0)
 personal_shield_generator = pc_item('Personal Shield Generator',
                           'OnPermanent',
                           ['Shield'],
@@ -107,7 +120,8 @@ personal_shield_generator = pc_item('Personal Shield Generator',
                           [0.08],
                           [0.08],
                           ['Linear'],
-                          ['Utility'])
+                          ['Utility'],
+                                    0)
 medkit = pc_item('Medkit',
                           'OnTakeDamage',
                           ['Heal'],
@@ -115,7 +129,8 @@ medkit = pc_item('Medkit',
                           [0.05],
                           [0.05],
                           ['Linear'],
-                          ['Healing'])
+                          ['Healing'],
+                 0)
 gasoline = pc_item('Gasoline',
                           'OnKillEffect',
                           ['Damage', 'Radius'],
@@ -123,7 +138,8 @@ gasoline = pc_item('Gasoline',
                           [0.15,12],
                           [0.75,4],
                           ['Linear','Linear'],
-                          ['Damage', 'OnKillEffect'])
+                          ['Damage', 'OnKillEffect'],
+                   0)
 stun_grenade = pc_item('Stun Grenade',
                           'OnHit',
                           ['Chance'],
@@ -131,7 +147,8 @@ stun_grenade = pc_item('Stun Grenade',
                           [0.05],
                           [0.05],
                           ['Hyperbolic'],
-                          ['Utility', 'AIBlacklist'])
+                          ['Utility', 'AIBlacklist'],
+                       0)
 bundle_of_fireworks = pc_item('Bundle of Fireworks',
                           'OnInteractable',
                           ['Fireworks'],
@@ -139,7 +156,8 @@ bundle_of_fireworks = pc_item('Bundle of Fireworks',
                           [8],
                           [4],
                           ['Linear'],
-                          ['Damage', 'AIBlacklist', 'InteractableRelated'])
+                          ['Damage', 'AIBlacklist', 'InteractableRelated'],
+                              0)
 energy_drink = pc_item('Energy Drink',
                           'OnSprint',
                           ['Sprint Speed'],
@@ -147,7 +165,8 @@ energy_drink = pc_item('Energy Drink',
                           [0.25],
                           [0.25],
                           ['Linear'],
-                          ['Utility', 'SprintRelated'])
+                          ['Utility', 'SprintRelated'],
+                       0)
 backup_magazine = pc_item('Backup Magazine',
                           'Permanent',
                           ['Charge'],
@@ -155,7 +174,8 @@ backup_magazine = pc_item('Backup Magazine',
                           [1],
                           [1],
                           ['Linear'],
-                          ['Utility'])
+                          ['Utility'],
+                          0)
 sticky_bomb = pc_item('Sticky Bomb',
                           'Permanent',
                           ['Chance'],
@@ -163,7 +183,8 @@ sticky_bomb = pc_item('Sticky Bomb',
                           [0.05],
                           [0.05],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                      0)
 #Update this item
 rusted_key = pc_item('Rusted Key',
                           'Permanent',
@@ -172,7 +193,8 @@ rusted_key = pc_item('Rusted Key',
                           [0.25],
                           [0.25],
                           ['Linear'],
-                          ['Utility', 'AIBlacklist','OnStageBeginEffect'])
+                          ['Utility', 'AIBlacklist','OnStageBeginEffect'],
+                     0)
 armor_piercing_rounds = pc_item('Armor-Piercing Rounds',
                           'OnBossDamage',
                           ['Damage'],
@@ -180,7 +202,8 @@ armor_piercing_rounds = pc_item('Armor-Piercing Rounds',
                           [0.20],
                           [0.20],
                           ['Linear'],
-                          ['Damage', 'AIBlacklist'])
+                          ['Damage', 'AIBlacklist'],
+                                0)
 topaz_brooch = pc_item('Topaz Brooch',
                           'OnKillEffect',
                           ['Barrier'],
@@ -188,7 +211,8 @@ topaz_brooch = pc_item('Topaz Brooch',
                           [15],
                           [15],
                           ['Linear'],
-                          ['Utility', 'Healing', 'OnKillEffect'])
+                          ['Utility', 'Healing', 'OnKillEffect'],
+                       0)
 focus_crystal = pc_item('Focus Crystal',
                           'In13M',
                           ['Damage'],
@@ -196,7 +220,8 @@ focus_crystal = pc_item('Focus Crystal',
                           [0.20],
                           [0.20],
                           ['Linear'],
-                          ['Damage'])
+                          ['Damage'],
+                        0)
 bison_steak = pc_item('Bison Steak',
                           'Permanent',
                           ['Health'],
@@ -204,7 +229,8 @@ bison_steak = pc_item('Bison Steak',
                           [25],
                           [25],
                           ['Linear'],
-                          ['Healing'])
+                          ['Healing'],
+                      0)
 repulsion_armor_plate = pc_item('Repulsion Armor Plate',
                           'OnTakingDamage',
                           ['Damage Reduction'],
@@ -212,7 +238,8 @@ repulsion_armor_plate = pc_item('Repulsion Armor Plate',
                           [5],
                           [5],
                           ['Linear'],
-                          ['Utility'])
+                          ['Utility'],
+                                0)
 mocha = pc_item('Mocha',
                           'Permanent',
                           ['Attack Speed', 'Movement Speed'],
@@ -220,7 +247,8 @@ mocha = pc_item('Mocha',
                           [0.075, 0.07],
                           [0.075, 0.07],
                           ['Linear','Linear'],
-                          ['Damage','Utility'])
+                          ['Damage','Utility'],
+                0)
 #Unique item thing
 power_elixer = pc_item('Power Elixer',
                           'On25%HP',
@@ -229,7 +257,8 @@ power_elixer = pc_item('Power Elixer',
                           [0.20],
                           [0.20],
                           ['Linear'],
-                          ['Healing','LowHealth','AIBlacklist'])
+                          ['Healing','LowHealth','AIBlacklist'],
+                       0)
 delicate_watch = pc_item('Delicate Watch',
                           'On25%HP',
                           ['Damage'],
@@ -237,7 +266,8 @@ delicate_watch = pc_item('Delicate Watch',
                           [0.20],
                           [0.20],
                           ['Linear'],
-                          ['Damage','LowHealth'])
+                          ['Damage','LowHealth'],
+                         0)
 oddly_shaped_opal = pc_item('Oddly-shaped Opal',
                           'OnOutsideCombat',
                           ['Armor'],
@@ -245,7 +275,8 @@ oddly_shaped_opal = pc_item('Oddly-shaped Opal',
                           [100],
                           [100],
                           ['Linear'],
-                          ['Utility'])
+                          ['Utility'],
+                            0)
 roll_of_pennies = pc_item('Roll of Pennies',
                           'OnTakingDamage',
                           ['Base Gold'],
@@ -253,5 +284,6 @@ roll_of_pennies = pc_item('Roll of Pennies',
                           [3],
                           [3],
                           ['Linear'],
-                          ['Utility','AIBlacklist'])
+                          ['Utility','AIBlacklist'],
+                          0)
 
