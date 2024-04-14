@@ -32,13 +32,13 @@ from survivors import *
 #         self.ability_type =  ability_type
 #         self.proc_coefficient = proc_coeffecient
 #         self.attack_speed = attack_speed
-def getDamage(ability, survivor, level):
+def getBaseDamage(ability, survivor, level):
     dps = ability.attack_speed * (survivor.base_damage + 
     ((level-1)*survivor.damage_growth_per_level))
 
     return dps
 
-damage = getDamage(commando_double_tap, commando, 2)
+damage = getBaseDamage(commando_double_tap, commando, 2)
 print(damage)
 
 # class pc_item:
@@ -73,7 +73,7 @@ print(damage)
 
 # def readItem(item): item.
 # print(white_items.lens_makers_glasses.chance)
-def compileItem(item,dps): 
+def compileItem(item,dps,ability): 
     # match item.scalingtype
     match item.scaling_type:
         case 'Linear':
@@ -93,8 +93,12 @@ def compileItem(item,dps):
         chance = item.value[0] +  (item.number * item.value_increase_per_stack[0]);
         dps = dps + chance * (2.0 * dps)
         print(dps)
+    if item.stat_list[0] == 'Soldier Syringe':
+        ability.attack_speed = ability.attack_speed*chance 
+    # if item.stat_list[0] == ' ':
+
     
-# compileItem(white_items.lens_makers_glasses, damage)
+compileItem(white_items.lens_makers_glasses, damage, commando_double_tap)
 
 # if item.scaling_type == 'Hyperbolic':
     # m1 = (item.value_increase_per_stack * item.number)

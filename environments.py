@@ -1,3 +1,4 @@
+import random
 class Environment:
     def __init__(self, 
                  stage_name,
@@ -38,6 +39,58 @@ sky_meadow = Environment('Sky Meadow', 5, 10, 10, 0)
 commencement = Environment('Commencement', 6, 10, 10, 0)
 planetarium = Environment('Commencement', 7, 10, 10, 0)
 
+stage_1_environments = [distant_roost, titanic_plains, siphoned_forest]
+stage_2_environments = [abandoned_aquaduct, wetland_aspect, aphelian_sanctuary]
+stage_3_environments = [rallypoint_delta, scorched_acres, sulfur_pools]
+stage_4_environments = [abyssal_depths, sirens_call, sundered_grove]
+stage_5_environments = [sky_meadow]
+stage_6_environments = [commencement]
+stage_7_environments = [planetarium]
+
+def getEnvironmentFromStage(environment_stage):
+    random_environment = random.choice(environment_stage)
+    return random_environment
+
+def BazaarCondition(stage_number): 
+    if stage_number == 5:
+        stage_number = 0
+    stage_object = "stage_" + str(stage_number+1) + "_environments"
+    environments = globals()[stage_object]
+    if len(environments) < 2:
+        environment_display_case = environments[0].stage_name
+        print(environment_display_case)
+    else:
+        environment_display_case = random.sample(environments, 2)
+        for environment in environment_display_case:
+            print(environment.stage_name+'\n')
+        print('Choose your next Stage (1,2)\n')
+        print('(1) '+environment_display_case[0].stage_name+'\n')
+        stage_select = input('(2) '+environment_display_case[1].stage_name+'\n')
+BazaarCondition(2)
+
+
+
+def onStart():
+    try:
+        while True:
+            print('Loading Environments')
+            env = getEnvironmentFromStage(stage_1_environments)
+            print("You are in: \n", env.stage_name)
+            bazaar_condition = input("Would you like to go to the Bazaar Between Time? (y,N)\n")
+            try:
+                if bazaar_condition in ['y', 'Y']:
+                    print("False\n")
+                    break
+                elif bazaar_condition in ['n', 'N']:
+                    print("False\n")
+                    break
+            except ValueError:
+                print("Invalid Input. Please input either y(es) or n(o)")
+    except KeyboardInterrupt:
+        print("\nThanks for playing!")
+        return None
+
+    
 #Hidden Realms
 # a_moment_fractured = Environment('A Momement, Fractured', 1, 10, 10, 0)
 # a_moment_whole = Environment('A Momement, Whole', 1, 10, 10, 0) 

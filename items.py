@@ -13,4 +13,3 @@ class Proc_Coeffecient_Item:
 atg_missile_mk = Proc_Coeffecient_Item(0.1, 1.0, 3.0)
 ukulele = Proc_Coeffecient_Item(0.2, 2.0, 6.0)
 dang = Proc_Coeffecient_Item(0.3, 3.0, 9.0)
-

@@ -17,7 +17,8 @@ class Survivor:
                  hp_regen_growth,
                  armor,
                  level,
-                 ms):
+                 ms,
+                 critical_chance):
         self.base_damage = base_damage 
         self.damage_growth_per_level= damage_growth_per_level 
         self.hp = hp 
@@ -27,6 +28,7 @@ class Survivor:
         self.armor = armor
         self.level = level
         self.ms = ms
+        self.critical_chance = critical_chance
 
 class Ability:
     def __init__(self,
@@ -65,7 +67,7 @@ class Ally:
 #Creating Survivors and Abilities
 #---------------------------------------------------------------------------------------------------------
 #Acrid
-acrid = Survivor("Acrid", 15, 3, 160, 48, 1.5, 0.3,  20, 1, 7)
+acrid = Survivor("Acrid", 15, 3, 160, 48, 1.5, 0.3,  20, 1, 7, 0.01)
 #Primary
 #Unknown cooldown/attackspeed for Acrid Primary
 # acrid_primary = Survivor("Acrid", 15, (3*1.0), ?, 20, 160, 1.5, 1, 7, 3, 48, 0.3)
@@ -110,7 +112,7 @@ artificer_ion_surge = Ability(artificier, "Ion Surge", 1.0, (1/8), 8.0)
 #---------------------------------------------------------------------------------------------------------
 #Bandit
 #ACCOUNT: Does not account for bandit passive
-bandit = Survivor("Bandit", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+bandit = Survivor("Bandit", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primaries
 #ASSUMPTION: Burst assumes all 5 bullets hit in all 4 shots 
@@ -136,7 +138,7 @@ bandit_desperado = Ability(bandit, "Desperado", 1.0, (1/4), 6.0)
 
 #---------------------------------------------------------------------------------------------------------
 #Captain
-captain = Survivor("Captain", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+captain = Survivor("Captain", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primaries
 #Base Attack speed approximated as average of charged vs uncharged primary 
@@ -157,7 +159,7 @@ captain_beacon = Ability(captain, "Beacon", 0.0, 1/240, 20.0)
 
 #---------------------------------------------------------------------------------------------------------
 #Commando
-commando = Survivor("Commando", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+commando = Survivor("Commando", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primary
 commando_double_tap = Ability(commando, "Double Tap", 1.0, 6, 1.0) 
@@ -174,7 +176,7 @@ commando_frag_grenade = Ability(commando, "Frag Grenade", 1.0, (1/5), 7.0)
 
 #---------------------------------------------------------------------------------------------------------
 #Engineer
-engineer = Survivor("Engineer", 14, 2.8, 130, 39, 0.6, 0.12, 0, 1, 7)
+engineer = Survivor("Engineer", 14, 2.8, 130, 39, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primary
 #TEST - No description on time needed to charge 8 grenades, need to change attack speed to tested value
@@ -197,7 +199,7 @@ engineer_tr58_carbonizer_turret= Ability(engineer, "TR58 Carbonizer Turret", 0.6
 
 #---------------------------------------------------------------------------------------------------------
 #Heretic
-heretic = Survivor("Heretic", 18, 3.6, 440, 132, -3.6, -0.72, 0, 1, 8)
+heretic = Survivor("Heretic", 18, 3.6, 440, 132, -3.6, -0.72, 0, 1, 8, 0.01)
 
 #Primary
 #TEST: Attack Speed Approximated, should be checked and verified, likely wrong
@@ -213,7 +215,7 @@ heretic_hungering_gaze_explosion = Ability(heretic, "Hungering Gaze (Explosition
 
 #---------------------------------------------------------------------------------------------------------
 #Huntress
-huntress = Survivor('Huntress', 12, 2.4, 90, 27, 0.6, 0.12, 0, 1, 7)
+huntress = Survivor('Huntress', 12, 2.4, 90, 27, 0.6, 0.12, 0, 1, 7, 0.01)
 #Primaries
 huntress_strafe = Ability(huntress, "Strafe", 1.0, 2, 1.5) 
 #If huntress crits, proc_coeffecient = 0.7*6
@@ -225,7 +227,7 @@ huntress_ballista = Ability(huntress, "Ballista", 1.0, (3/12), 9.0)
 
 #---------------------------------------------------------------------------------------------------------
 #Loader
-loader = Survivor("Loader", 12, 2.4, 160, 48, 1.5, 0.3, 20, 1, 7)
+loader = Survivor("Loader", 12, 2.4, 160, 48, 1.5, 0.3, 20, 1, 7, 0.01)
 #Primary
 #ASSUMPTION - Unknown Attack Speed, guesstimate, likely wrong
 #TEST - Need to test the attack speed of Knuckleboom, wiki does not have data
@@ -245,7 +247,7 @@ loader_thunderslam = Ability(loader, "Thunderslam", 1.0, (1/8), 20.0)
 
 #---------------------------------------------------------------------------------------------------------
 #Mercenary
-mercenary = Survivor("Mercenary", 12, 2.4, 110, 33, 0.6, 0.12, 20, 1, 7)
+mercenary = Survivor("Mercenary", 12, 2.4, 110, 33, 0.6, 0.12, 20, 1, 7, 0.01)
 #Primary
 #ASSUMPTION - Doesn't account for the damage of Expose
 #ASSUMPTION - Doesn't account for attack speed
@@ -254,7 +256,7 @@ mercenary_laser_sword = Ability(mercenary, "Laser Sword", 1.0, (3/1.9), 1.3)
 
 #---------------------------------------------------------------------------------------------------------
 #MUL-T
-mul_t = Survivor("MUL-T", 11, 2.2, 200, 60, 0.6, 0.12, 12, 1, 7)
+mul_t = Survivor("MUL-T", 11, 2.2, 200, 60, 0.6, 0.12, 12, 1, 7, 0.01)
 
 #Primaries
 mul_t_auto_nailgun= Ability(mul_t, "Auto-Nailgun", 0.6, (12/1), 0.7)
@@ -272,7 +274,8 @@ mul_t_transport_mode = Ability(mul_t, "Transport Mode", 1.0, (1/6), 2.5)
 
 #---------------------------------------------------------------------------------------------------------
 #Railgunner
-railgunner = Survivor("Railgunner", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+# Need to make exception for railgunner
+railgunner = Survivor("Railgunner", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primaries
 #ASSUMPTION: M99 Sniper Assumes a Perfect Reload
@@ -293,7 +296,7 @@ railgunner_cryocharge = Ability(railgunner, "Cryocharge", 1.5, 15, 20.0)
 
 #---------------------------------------------------------------------------------------------------------
 #REX
-rex = Survivor("REX", 12, 2.4, 130, 39, 0.6, 0.12, 20, 1, 7)
+rex = Survivor("REX", 12, 2.4, 130, 39, 0.6, 0.12, 20, 1, 7, 0.01)
 
 #Primary
 #ASSUMPTION - Assumes the time to fire one burst is 0.8 seconds based on the wiki
@@ -301,7 +304,7 @@ rex_directive_inject = Ability(rex, "DIRECTIVE: Inject", 0.5, (3/0.8), 0.8)
 
 #---------------------------------------------------------------------------------------------------------
 #Void Fiend
-void_fiend = Survivor("V??oid Fiend", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7)
+void_fiend = Survivor("V??oid Fiend", 12, 2.4, 110, 33, 0.6, 0.12, 0, 1, 7, 0.01)
 
 #Primaries
 void_fiend_drown = Ability(void_fiend, "Drown", 1.0, (5/3), 3.0) 
