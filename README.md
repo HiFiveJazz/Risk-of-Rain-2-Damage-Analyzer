@@ -6,7 +6,7 @@ Have you ever thought
 
 or  
 
-> *I wish I could see the probability distribution of how proc chains work the items in my inventory?*  
+> *I wish I could see the probability distribution of how proc-chains work with the items in my inventory?*  
 
 Probably not, but regardless, this project aims to do just that! 
 
