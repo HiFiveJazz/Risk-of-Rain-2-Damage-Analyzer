@@ -9,7 +9,7 @@ class pc_item:
                  value_increase_per_stack,
                  scaling_type,
                  tag,
-                 number):
+                 count):
 
         self.name = name
         self.chance = chance
@@ -19,7 +19,7 @@ class pc_item:
         self.value_increase_per_stack = value_increase_per_stack
         self.scaling_type = scaling_type 
         self.tag = tag 
-        self.number = number
+        self.count = count 
 
 soldier_syringe = pc_item('Soldier Syringe',
                           'Permanent',
