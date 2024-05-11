@@ -1,4 +1,5 @@
 from items import white_items
+test
 from survivors import *
 # class Survivor:
 #     def __init__(self,
