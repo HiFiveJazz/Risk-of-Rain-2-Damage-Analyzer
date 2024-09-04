@@ -1,5 +1,4 @@
 from items import white_items
-test
 from survivors import *
 # class Survivor:
 #     def __init__(self,
@@ -73,7 +72,7 @@ print(damage)
 #                           ['Damage'])
 
 white_items.tougher_times.count = 255
-def compileItem(item,dps,survivor,ability): 
+def compile_item(item,dps,survivor,ability): 
     # match item.scalingtype
     i = 0
     match item.scaling_type[i]:
@@ -109,7 +108,7 @@ def compileItem(item,dps,survivor,ability):
 
     return dps
     
-hi = compileItem(white_items.tougher_times, damage, commando, commando_double_tap)
-print(hi)
+test = compile_item(white_items.tougher_times, damage, commando, commando_double_tap)
+print(test)
 # if item.scaling_type == 'Hyperbolic':
     # m1 = (item.value_increase_per_stack * item.number)
