@@ -101,6 +101,7 @@ artificer_cast_nano_spear_min = Ability(artificier, "Cast Nano-Spear (Min)", 1.0
 
 #Utility
 #ASSUMPTION: assumes all 12 pillars hit (1.0 * 12)
+#ASSUMPTION: Does not account for freeze effect
 artificer_snapfreeze = Ability(artificier, "Snapfreeze", (1.0*12), (1/12), 1.0) 
 
 #Special
@@ -324,6 +325,7 @@ beetle_guard =  Ally("Beetle Guard (Ally)", 48, 9.6, 960, 288, 1.5, 0.3, 0, 1, 1
 aurelionite = Ally("Aurelionite", 40, 8, 2100, 630, 0, 0, 20, 1, 5)
 
 #Empathy Cores ()
+#TODO: Add the item from which empathy cores comes from
 delighted_probe = Ally("Delighted Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 quiet_probe = Ally("Quiet Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 

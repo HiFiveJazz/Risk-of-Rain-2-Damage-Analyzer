@@ -38,7 +38,7 @@ def getBaseDamage(ability, survivor, level):
     dps = dps + (survivor.critical_chance*2*dps)
     return dps
 
-damage = getBaseDamage(commando_double_tap, commando, 1)
+damage = getBaseDamage(commando_double_tap, commando, 2)
 print(damage)
 
 # class pc_item:
@@ -71,7 +71,7 @@ print(damage)
 #                           ['Linear'],
 #                           ['Damage'])
 
-white_items.tougher_times.count = 255
+white_items.lens_makers_glasses.count = 113 
 def compile_item(item,dps,survivor,ability): 
     # match item.scalingtype
     i = 0
@@ -108,7 +108,7 @@ def compile_item(item,dps,survivor,ability):
 
     return dps
     
-test = compile_item(white_items.tougher_times, damage, commando, commando_double_tap)
+test = compile_item(white_items.lens_makers_glasses, damage, commando, commando_double_tap)
 print(test)
 # if item.scaling_type == 'Hyperbolic':
     # m1 = (item.value_increase_per_stack * item.number)

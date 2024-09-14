@@ -1,0 +1,23 @@
+proc coeffecient
+percent chance
+damage
+
+Commando - Ability -> 50 damage w/ proc coeff 1.0
+atg -> 10% --- * 3.0 w/ proc coeff 1.0
+level 1 50 * 1.0 = 50 ABILITY ONLY
+
+Assuming all attacks proc ATG and we are using Commando Ability
+
+50 damage * (3.0 * 1.0) = 150 --> ATG ONLY
+
+50 + 150 TOTAL DAMAGE
+
+Problems: 
+Find the DPS of a build over some set time
+
+- every items condition is different 
+- every items effect is different 
+- need a way to find every chain
+- need a way to calculate every chain
+- wanted to the expected the value of a given build
+
