@@ -19,6 +19,7 @@ class Survivor:
                  level,
                  ms,
                  critical_chance):
+        self.name = name 
         self.base_damage = base_damage 
         self.damage_growth_per_level= damage_growth_per_level 
         self.hp = hp 
@@ -55,6 +56,7 @@ class Ally:
                  armor,
                  level,
                  ms):
+        self.name = name 
         self.base_damage = base_damage 
         self.damage_growth_per_level= damage_growth_per_level 
         self.hp = hp 
@@ -324,8 +326,7 @@ beetle_guard =  Ally("Beetle Guard (Ally)", 48, 9.6, 960, 288, 1.5, 0.3, 0, 1, 1
 # Aurelionite (Halcyon Seed)
 aurelionite = Ally("Aurelionite", 40, 8, 2100, 630, 0, 0, 20, 1, 5)
 
-#Empathy Cores ()
-#TODO: Add the item from which empathy cores comes from
+#Solus Probes (Empathy Cores)
 delighted_probe = Ally("Delighted Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 quiet_probe = Ally("Quiet Probe", 15, 3, 880, 268, 0, 0, 10, 1, 10)
 

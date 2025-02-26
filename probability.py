@@ -16,12 +16,13 @@ class Item:
         self.proc_coefficient = proc_coefficient  
         self.damage = damage
 #Creating Items
-atg_missile_mk = Item(0.1, 1.0, 3.0)
+atg_missile_mk = Item(0.9, 1.0, 3.0)
 ukulele = Item(0.2, 2.0, 6.0)
 dang = Item(0.3, 3.0, 9.0)
 
 items = [atg_missile_mk, ukulele, dang]
 
+#creates all permutations of  
 def permute(items):
     result = []
 
@@ -78,15 +79,18 @@ def rest_chain_prob(value):
             b.append(result*100)
         n=n+2
     return b
+
+
             
-# print("Permutate")
 result = permute(items)
-# print("Value")
-value = translate_to_numbers(result)
-print(value)
-answer = max_chain_prob(value)
-print("Max Chain")
+# print("Permutate\n")
+# print(result)
+value = translate_to_numbers(result);
+# print("Value\n")
+# print(value)
+answer = max_chain_prob(value);
+print("Max Chain\n");
 print(answer)
 b = rest_chain_prob(value)
-print("Rest Chain")
+print("Rest Chain\n")
 print(b)
