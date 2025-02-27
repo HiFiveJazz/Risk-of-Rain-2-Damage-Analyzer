@@ -31,7 +31,6 @@ print("\n")
 # print(damage_with_base_crit)
 # print("\n")
 
-white_items.tri_tip_dagger.count = 20;
 # white_items.tougher_times.count = 1;
 
 
@@ -78,17 +77,28 @@ def compile_item(item,dps,survivor,ability):
             duration_tick = duration_sec*4
             damage_per_tick = dps * 0.2
             total_bleed_damage = duration_tick * damage_per_tick
-            print("Bleed Chance:",chance)
-            print("Damage Per Tick:",chance)
+            print("Bleed Chance (%):",chance*100)
             print("Duration (Seconds):",duration_sec)
             print("Duration (Ticks):",duration_tick)
             print("Damage Per Tick:",damage_per_tick)
             print("Total Bleed Damage:",total_bleed_damage)
+        case 'Armor-Piercing Rounds':
+            print("Armor-Piercing Round")
+            print("Additional Boss Chance (%)", chance*100)
+            additional_boss_damage = (dps*chance); 
+            print("Additional Boss Damage", additional_boss_damage)
+            dps = dps + additional_boss_damage;
+            print("Total Boss Damage", dps)
+        case 'Crowbar':
+            print("Crowbar")
+            print("Additional Damage to Enemies aboe 90% HP(%)", chance*100)
     return dps
+
+white_items.crowbar.count = 10;
 
     
 print("Damage after items: ")
-test = compile_item(white_items.tri_tip_dagger, damage, commando, commando_double_tap)
+test = compile_item(white_items.crowbar, damage, commando, commando_double_tap)
 print(test)
 # if item.scaling_type == 'Hyperbolic':
     # m1 = (item.value_increase_per_stack * item.number)
