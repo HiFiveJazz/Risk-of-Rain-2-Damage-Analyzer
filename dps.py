@@ -31,8 +31,10 @@ print("\n")
 # print(damage_with_base_crit)
 # print("\n")
 
+white_items.tri_tip_dagger.count = 20;
+# white_items.tougher_times.count = 1;
 
-white_items.lens_makers_glasses.count = 20
+
 def compile_item(item,dps,survivor,ability): 
     # match item.scalingtype
     i = 0
@@ -67,13 +69,26 @@ def compile_item(item,dps,survivor,ability):
         case 'Soldier Syringe':
             dps = dps * (1+chance)
         case 'Tougher Times':
-            block_chance = chance
-            print("Block Chance:",block_chance)
+            dps = chance
+            print("Block Chance:",dps)
+        case 'Tri-Tip Dagger':
+            if (chance > 1):
+                chance = 1;
+            duration_sec = 3*ability.proc_coefficient
+            duration_tick = duration_sec*4
+            damage_per_tick = dps * 0.2
+            total_bleed_damage = duration_tick * damage_per_tick
+            print("Bleed Chance:",chance)
+            print("Damage Per Tick:",chance)
+            print("Duration (Seconds):",duration_sec)
+            print("Duration (Ticks):",duration_tick)
+            print("Damage Per Tick:",damage_per_tick)
+            print("Total Bleed Damage:",total_bleed_damage)
     return dps
 
     
 print("Damage after items: ")
-test = compile_item(white_items.lens_makers_glasses, damage, commando, commando_double_tap)
+test = compile_item(white_items.tri_tip_dagger, damage, commando, commando_double_tap)
 print(test)
 # if item.scaling_type == 'Hyperbolic':
     # m1 = (item.value_increase_per_stack * item.number)
