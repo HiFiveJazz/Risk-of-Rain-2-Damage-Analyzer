@@ -91,7 +91,44 @@ def compile_item(item,dps,survivor,ability):
             print("Total Boss Damage", dps)
         case 'Crowbar':
             print("Crowbar")
-            print("Additional Damage to Enemies aboe 90% HP(%)", chance*100)
+            print("Additional Damage to Enemies above 90% HP(%)", chance*100)
+            #:TODO: Depends on enemy hp, have function take in enemy hp for this calc
+        case 'Bundle of Fireworks':
+            print("Bundle of Fireworks")
+            if (item.count > 1):
+                number_of_fireworks = item.value + item.value_increase_per_stack * (item.count-1);
+                print("Number of Fireworks", number_of_fireworks)
+                print("Base Damage", dps)
+                firework_damage = (dps * 3) * number_of_fireworks;
+                print("Firework Damage", firework_damage)
+                dps = dps + firework_damage;
+                print("Total Damage", dps)
+            else:
+                print("Count < 1")
+        case 'Delicate Watch':
+            print("Delicate Watch")
+            watch_damage_increase = item.value*(item.value_increase_per_stack * item.count);
+            print("Watch Damage Increase (%)", watch_damage_increase*100)
+            dps = dps * (watch_damage_increase) + dps
+            print("Total Damage", dps)
+            #:TODO: Depends on user hp, break watch and add broken_delicate_watch to item pool if below 25% hp
+
+            # print("Additional Damage to Enemies aboe 90% HP(%)", chance*100)
+        case 'Gasoline':
+            print("Gasoline")
+            if (item.count > 1):
+                gasoline_range = item.value[1]+(item.value_increase_per_stack[1] * (item.count-1)); #In meters
+                print("Gasoline Range (m)", gasoline_range)
+                gasoline_burn_multiplier = item.value[2]+(item.value_increase_per_stack[2] * (item.count-1)); #In meters 
+                print("Gasoline damage multiplier (%)", gasoline_burn_multiplier*100);
+                ignition_explosion_damage = 1.5 * dps
+                burn_damage = gasoline_burn_multiplier * dps 
+                print("Initial Ignition Damage", ignition_explosion_damage);
+                print("Burn Damage", burn_damage);
+            else:
+                print("Item count < 0");
+
+            # print("Additional Damage to Enemies aboe 90% HP(%)", chance*100)
     return dps
 
 white_items.crowbar.count = 10;
