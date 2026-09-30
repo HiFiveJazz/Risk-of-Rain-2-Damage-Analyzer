@@ -109,6 +109,7 @@ impl Hit {
         })
     }
 }
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AttackTargeting {
     SingleTarget,
@@ -131,29 +132,96 @@ impl TargetId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct Target {
+    id: TargetId,
+    health: f64,
+    max_health: f64,
+    armor: f64,
+    is_boss: bool,
+}
+
+impl Target {
+    pub fn new(id: TargetId, health: f64, max_health: f64, armor: f64, is_boss: bool) -> Self {
+        assert!(max_health > 0.0);
+        assert!(health >= 0.0);
+        assert!(health <= max_health);
+
+        Self {
+            id,
+            health,
+            max_health,
+            armor,
+            is_boss,
+        }
+    }
+
+    pub fn full_health(id: TargetId, max_health: f64) -> Self {
+        Self::new(id, max_health, max_health, 0.0, false)
+    }
+
+    pub fn id(&self) -> TargetId {
+        self.id
+    }
+
+    pub fn health(&self) -> f64 {
+        self.health
+    }
+
+    pub fn max_health(&self) -> f64 {
+        self.max_health
+    }
+
+    pub fn armor(&self) -> f64 {
+        self.armor
+    }
+
+    pub fn is_boss(&self) -> bool {
+        self.is_boss
+    }
+
+    pub fn health_fraction(&self) -> f64 {
+        self.health / self.max_health
+    }
+
+    pub fn apply_damage(&mut self, damage: f64) {
+        assert!(damage >= 0.0);
+
+        self.health = (self.health - damage).max(0.0);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TargetContext {
     primary: TargetId,
-    targets: Vec<TargetId>,
+    targets: Vec<Target>,
 }
 
 impl TargetContext {
     pub fn isolated() -> Self {
-        Self {
-            primary: TargetId::PRIMARY,
-            targets: vec![TargetId::PRIMARY],
-        }
+        Self::new(Target::full_health(TargetId::PRIMARY, 100.0), Vec::new())
     }
 
     pub fn with_secondary_targets(count: u32) -> Self {
-        let mut targets = Vec::with_capacity(count as usize + 1);
+        let primary = Target::full_health(TargetId::PRIMARY, 100.0);
 
-        targets.push(TargetId::PRIMARY);
+        let secondary_targets = (1..=count)
+            .map(|id| Target::full_health(TargetId::new(id), 100.0))
+            .collect();
 
-        targets.extend((1..=count).map(TargetId::new));
+        Self::new(primary, secondary_targets)
+    }
+
+    pub fn new(primary: Target, secondary_targets: Vec<Target>) -> Self {
+        let primary_id = primary.id();
+
+        let mut targets = Vec::with_capacity(secondary_targets.len() + 1);
+
+        targets.push(primary);
+        targets.extend(secondary_targets);
 
         Self {
-            primary: TargetId::PRIMARY,
+            primary: primary_id,
             targets,
         }
     }
@@ -162,8 +230,16 @@ impl TargetContext {
         self.primary
     }
 
-    pub fn all_targets(&self) -> &[TargetId] {
+    pub fn all_targets(&self) -> &[Target] {
         &self.targets
+    }
+
+    pub fn target(&self, id: TargetId) -> Option<&Target> {
+        self.targets.iter().find(|target| target.id() == id)
+    }
+
+    pub fn target_mut(&mut self, id: TargetId) -> Option<&mut Target> {
+        self.targets.iter_mut().find(|target| target.id() == id)
     }
 
     pub fn contact_targets(
@@ -179,8 +255,8 @@ impl TargetContext {
             AttackTargeting::Chain { max_targets, .. } => self
                 .targets
                 .iter()
-                .copied()
-                .filter(|target| *target != source_target)
+                .filter(|target| target.id() != source_target)
+                .map(Target::id)
                 .take(max_targets as usize)
                 .collect(),
         }
@@ -190,6 +266,45 @@ impl TargetContext {
 impl Default for TargetContext {
     fn default() -> Self {
         Self::isolated()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DamageCondition {
+    Always,
+
+    TargetHealthAbove { fraction: f64 },
+
+    TargetIsBoss,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FinalDamageModifier {
+    pub condition: DamageCondition,
+
+    /// Additional damage per stack.
+    ///
+    /// 0.75 means +75%.
+    pub bonus_per_stack: f64,
+
+    pub stacks: u32,
+}
+
+impl FinalDamageModifier {
+    pub fn multiplier_for(&self, target: &Target) -> f64 {
+        let applies = match self.condition {
+            DamageCondition::Always => true,
+
+            DamageCondition::TargetHealthAbove { fraction } => target.health_fraction() > fraction,
+
+            DamageCondition::TargetIsBoss => target.is_boss(),
+        };
+
+        if applies {
+            1.0 + self.bonus_per_stack * f64::from(self.stacks)
+        } else {
+            1.0
+        }
     }
 }
 

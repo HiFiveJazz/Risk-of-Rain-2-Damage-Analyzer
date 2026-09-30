@@ -139,3 +139,25 @@ fn inventory_can_drive_proc_tree_evaluation() {
 
     assert_close(expected_generated_damage, 57.2);
 }
+
+#[test]
+fn inventory_builds_crowbar_modifier_from_stacks() {
+    let mut inventory = Inventory::new();
+
+    inventory.add(ItemKind::Crowbar, 2);
+
+    let modifiers = inventory.final_damage_modifiers();
+
+    assert_eq!(modifiers.len(), 1,);
+
+    let modifier = modifiers[0];
+
+    assert_eq!(
+        modifier.condition,
+        DamageCondition::TargetHealthAbove { fraction: 0.90 },
+    );
+
+    assert_close(modifier.bonus_per_stack, 0.75);
+
+    assert_eq!(modifier.stacks, 2,);
+}

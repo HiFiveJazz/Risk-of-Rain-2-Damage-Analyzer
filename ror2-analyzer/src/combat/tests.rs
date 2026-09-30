@@ -571,3 +571,171 @@ fn single_target_proc_stays_on_triggering_contact_target() {
 
     assert_eq!(atg.hit.target, ukulele_hit.target,);
 }
+
+#[test]
+fn health_threshold_modifier_only_applies_above_threshold() {
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 1,
+    };
+
+    let above = Target::new(TargetId::PRIMARY, 91.0, 100.0, 0.0, false);
+
+    let exactly = Target::new(TargetId::PRIMARY, 90.0, 100.0, 0.0, false);
+
+    let below = Target::new(TargetId::PRIMARY, 50.0, 100.0, 0.0, false);
+
+    let mut hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut hit, &above, &[modifier]);
+
+    assert_close(hit.final_damage, 175.0);
+
+    let mut hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut hit, &exactly, &[modifier]);
+
+    assert_close(hit.final_damage, 100.0);
+
+    let mut hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut hit, &below, &[modifier]);
+
+    assert_close(hit.final_damage, 100.0);
+}
+
+#[test]
+fn health_threshold_modifier_stacks_linearly() {
+    let target = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 2,
+    };
+
+    let mut hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut hit, &target, &[modifier]);
+
+    // 1 + 0.75 + 0.75 = 2.5
+    assert_close(hit.final_damage, 250.0);
+}
+
+#[test]
+fn health_threshold_bonus_does_not_feed_total_damage_proc() {
+    let target = Target::full_health(TargetId::PRIMARY, 10_000.0);
+
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 1,
+    };
+
+    let mut root = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut root, &target, &[modifier]);
+
+    assert_close(root.proc_damage, 100.0);
+
+    assert_close(root.final_damage, 175.0);
+
+    let atg = root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    // Crowbar's 175 damage does NOT become:
+    //
+    // 175 * 3 = 525
+    //
+    // AtG inherits the unmodified 100.
+    assert_close(atg.proc_damage, 300.0);
+}
+
+#[test]
+fn resolved_hit_reduces_target_health() {
+    let primary = Target::new(TargetId::PRIMARY, 1000.0, 1000.0, 0.0, false);
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let resolved = resolve_and_apply_hit(&root, &mut targets, &[]);
+
+    assert_close(resolved.final_damage, 100.0);
+
+    let target = targets.target(TargetId::PRIMARY).unwrap();
+
+    assert_close(target.health(), 900.0);
+}
+
+#[test]
+fn crowbar_can_turn_off_during_a_proc_chain() {
+    let primary = Target::new(
+        TargetId::PRIMARY,
+        // 95% health initially.
+        950.0,
+        1000.0,
+        0.0,
+        false,
+    );
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let crowbar = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 1,
+    };
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let resolved_root = resolve_and_apply_hit(&root, &mut targets, &[crowbar]);
+
+    // Target was above 90%, so Crowbar applies:
+    //
+    // 100 * 1.75 = 175
+    assert_close(resolved_root.proc_damage, 100.0);
+
+    assert_close(resolved_root.final_damage, 175.0);
+
+    // 950 - 175 = 775.
+    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 775.0);
+
+    // Root procs AtG.
+    let atg = resolved_root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    // TOTAL damage inherits 100, not 175.
+    assert_close(atg.proc_damage, 300.0);
+
+    let resolved_atg = resolve_and_apply_hit(&atg, &mut targets, &[crowbar]);
+
+    // Target is now only at 77.5% HP,
+    // so Crowbar must NOT apply to AtG.
+    assert_close(resolved_atg.proc_damage, 300.0);
+
+    assert_close(resolved_atg.final_damage, 300.0);
+
+    // 775 - 300 = 475.
+    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 475.0);
+}
+
+#[test]
+fn target_health_does_not_go_below_zero() {
+    let primary = Target::new(TargetId::PRIMARY, 50.0, 100.0, 0.0, false);
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let hit = Hit::root(10.0, 100.0, 1.0);
+
+    resolve_and_apply_hit(&hit, &mut targets, &[]);
+
+    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 0.0);
+}

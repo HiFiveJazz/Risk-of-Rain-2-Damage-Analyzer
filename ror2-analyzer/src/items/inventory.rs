@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use crate::{
     AttackTargeting,
-    combat::{BleedProc, OnHitEffect, ProcKind, TotalDamageProc},
+    combat::{
+        BleedProc, DamageCondition, FinalDamageModifier, OnHitEffect, ProcKind, TotalDamageProc,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -10,6 +12,7 @@ pub enum ItemKind {
     AtgMissile,
     Ukulele,
     TriTipDagger,
+    Crowbar,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -104,5 +107,23 @@ impl Inventory {
         }
 
         effects
+    }
+
+    pub fn final_damage_modifiers(&self) -> Vec<FinalDamageModifier> {
+        let mut modifiers = Vec::new();
+
+        let crowbar_stacks = self.stack_count(ItemKind::Crowbar);
+
+        if crowbar_stacks > 0 {
+            modifiers.push(FinalDamageModifier {
+                condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+                bonus_per_stack: 0.75,
+
+                stacks: crowbar_stacks,
+            });
+        }
+
+        modifiers
     }
 }

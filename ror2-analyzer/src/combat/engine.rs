@@ -15,6 +15,46 @@ pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luc
     }
 }
 
+pub fn resolve_and_apply_hit(
+    hit: &Hit,
+    target_context: &mut TargetContext,
+    modifiers: &[FinalDamageModifier],
+) -> Hit {
+    let mut resolved_hit = hit.clone();
+
+    {
+        let target = target_context
+            .target(hit.target)
+            .expect("hit target must exist in target context");
+
+        apply_final_damage_modifiers(&mut resolved_hit, target, modifiers);
+    }
+
+    target_context
+        .target_mut(hit.target)
+        .expect("hit target must exist in target context")
+        .apply_damage(resolved_hit.final_damage);
+
+    resolved_hit
+}
+
+pub fn apply_final_damage_modifiers(
+    hit: &mut Hit,
+    target: &Target,
+    modifiers: &[FinalDamageModifier],
+) {
+    let multiplier: f64 = modifiers
+        .iter()
+        .map(|modifier| modifier.multiplier_for(target))
+        .product();
+
+    // Critically, only final_damage changes.
+    //
+    // proc_damage stays untouched so TOTAL-damage
+    // child effects do not double-dip.
+    hit.final_damage = hit.proc_damage * multiplier;
+}
+
 pub fn enumerate_direct_proc_outcomes(
     source_hit: &Hit,
     on_hit_effects: &[OnHitEffect],
