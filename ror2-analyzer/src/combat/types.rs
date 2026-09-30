@@ -12,6 +12,23 @@ pub struct ProcMask {
     seen: HashSet<ProcKind>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct HitResolution {
+    pub hit: Hit,
+    pub target_health_before: f64,
+    pub target_health_after: f64,
+}
+
+impl HitResolution {
+    pub fn killed_target(&self) -> bool {
+        self.target_health_before > 0.0 && self.target_health_after <= 0.0
+    }
+
+    pub fn damage_dealt(&self) -> f64 {
+        self.target_health_before - self.target_health_after
+    }
+}
+
 impl ProcMask {
     pub fn contains(&self, proc_kind: ProcKind) -> bool {
         self.seen.contains(&proc_kind)

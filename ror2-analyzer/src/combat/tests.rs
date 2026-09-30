@@ -662,22 +662,26 @@ fn resolved_hit_reduces_target_health() {
 
     let mut targets = TargetContext::new(primary, Vec::new());
 
-    let root = Hit::root(10.0, 100.0, 1.0);
+    let hit = Hit::root(10.0, 100.0, 1.0);
 
-    let resolved = resolve_and_apply_hit(&root, &mut targets, &[]);
+    let resolution = resolve_and_apply_hit(&hit, &mut targets, &[]);
 
-    assert_close(resolved.final_damage, 100.0);
+    assert_close(resolution.hit.final_damage, 100.0);
 
-    let target = targets.target(TargetId::PRIMARY).unwrap();
+    assert_close(resolution.target_health_before, 1000.0);
 
-    assert_close(target.health(), 900.0);
+    assert_close(resolution.target_health_after, 900.0);
+
+    assert_close(resolution.damage_dealt(), 100.0);
+
+    assert!(!resolution.killed_target());
 }
 
 #[test]
 fn crowbar_can_turn_off_during_a_proc_chain() {
     let primary = Target::new(
         TargetId::PRIMARY,
-        // 95% health initially.
+        // 95% HP.
         950.0,
         1000.0,
         0.0,
@@ -695,36 +699,36 @@ fn crowbar_can_turn_off_during_a_proc_chain() {
 
     let root = Hit::root(10.0, 100.0, 1.0);
 
-    let resolved_root = resolve_and_apply_hit(&root, &mut targets, &[crowbar]);
+    let root_resolution = resolve_and_apply_hit(&root, &mut targets, &[crowbar]);
 
-    // Target was above 90%, so Crowbar applies:
+    // Target starts above 90%:
     //
-    // 100 * 1.75 = 175
-    assert_close(resolved_root.proc_damage, 100.0);
+    // 100 × 1.75 = 175
+    assert_close(root_resolution.hit.proc_damage, 100.0);
 
-    assert_close(resolved_root.final_damage, 175.0);
+    assert_close(root_resolution.hit.final_damage, 175.0);
 
-    // 950 - 175 = 775.
-    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 775.0);
+    assert_close(root_resolution.target_health_after, 775.0);
 
-    // Root procs AtG.
-    let atg = resolved_root
+    let atg = root_resolution
+        .hit
         .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
         .unwrap();
 
-    // TOTAL damage inherits 100, not 175.
+    // Crowbar did not feed into TOTAL damage.
     assert_close(atg.proc_damage, 300.0);
 
-    let resolved_atg = resolve_and_apply_hit(&atg, &mut targets, &[crowbar]);
+    let atg_resolution = resolve_and_apply_hit(&atg, &mut targets, &[crowbar]);
 
-    // Target is now only at 77.5% HP,
-    // so Crowbar must NOT apply to AtG.
-    assert_close(resolved_atg.proc_damage, 300.0);
+    // Target is now at 77.5% HP,
+    // so Crowbar no longer qualifies.
+    assert_close(atg_resolution.hit.proc_damage, 300.0);
 
-    assert_close(resolved_atg.final_damage, 300.0);
+    assert_close(atg_resolution.hit.final_damage, 300.0);
 
-    // 775 - 300 = 475.
-    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 475.0);
+    assert_close(atg_resolution.target_health_before, 775.0);
+
+    assert_close(atg_resolution.target_health_after, 475.0);
 }
 
 #[test]
@@ -738,4 +742,25 @@ fn target_health_does_not_go_below_zero() {
     resolve_and_apply_hit(&hit, &mut targets, &[]);
 
     assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 0.0);
+}
+
+#[test]
+fn hit_resolution_detects_kills_and_actual_damage_dealt() {
+    let primary = Target::new(TargetId::PRIMARY, 50.0, 100.0, 0.0, false);
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let hit = Hit::root(10.0, 100.0, 1.0);
+
+    let resolution = resolve_and_apply_hit(&hit, &mut targets, &[]);
+
+    // Raw hit is still 100.
+    assert_close(resolution.hit.final_damage, 100.0);
+
+    // But only 50 HP actually existed.
+    assert_close(resolution.damage_dealt(), 50.0);
+
+    assert_close(resolution.target_health_after, 0.0);
+
+    assert!(resolution.killed_target());
 }

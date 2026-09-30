@@ -19,7 +19,12 @@ pub fn resolve_and_apply_hit(
     hit: &Hit,
     target_context: &mut TargetContext,
     modifiers: &[FinalDamageModifier],
-) -> Hit {
+) -> HitResolution {
+    let target_health_before = target_context
+        .target(hit.target)
+        .expect("hit target must exist in target context")
+        .health();
+
     let mut resolved_hit = hit.clone();
 
     {
@@ -30,12 +35,17 @@ pub fn resolve_and_apply_hit(
         apply_final_damage_modifiers(&mut resolved_hit, target, modifiers);
     }
 
-    target_context
+    let target = target_context
         .target_mut(hit.target)
-        .expect("hit target must exist in target context")
-        .apply_damage(resolved_hit.final_damage);
+        .expect("hit target must exist in target context");
 
-    resolved_hit
+    target.apply_damage(resolved_hit.final_damage);
+
+    HitResolution {
+        hit: resolved_hit,
+        target_health_before,
+        target_health_after: target.health(),
+    }
 }
 
 pub fn apply_final_damage_modifiers(
