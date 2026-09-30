@@ -24,6 +24,7 @@ impl ProcMask {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hit {
+    pub target: TargetId,
     pub attacker_base_damage: f64,
     pub proc_damage: f64,
     pub final_damage: f64,
@@ -34,11 +35,26 @@ pub struct Hit {
 
 impl Hit {
     pub fn root(attacker_base_damage: f64, proc_damage: f64, proc_coefficient: f64) -> Self {
+        Self::root_on_target(
+            TargetId::PRIMARY,
+            attacker_base_damage,
+            proc_damage,
+            proc_coefficient,
+        )
+    }
+
+    pub fn root_on_target(
+        target: TargetId,
+        attacker_base_damage: f64,
+        proc_damage: f64,
+        proc_coefficient: f64,
+    ) -> Self {
         assert!(attacker_base_damage >= 0.0);
         assert!(proc_damage >= 0.0);
         assert!(proc_coefficient >= 0.0);
 
         Self {
+            target,
             attacker_base_damage,
             proc_damage,
             final_damage: proc_damage,
@@ -60,6 +76,16 @@ impl Hit {
         damage_multiplier: f64,
         proc_coefficient: f64,
     ) -> Option<Self> {
+        self.spawn_total_damage_proc_on(proc_kind, self.target, damage_multiplier, proc_coefficient)
+    }
+
+    pub fn spawn_total_damage_proc_on(
+        &self,
+        proc_kind: ProcKind,
+        target: TargetId,
+        damage_multiplier: f64,
+        proc_coefficient: f64,
+    ) -> Option<Self> {
         assert!(damage_multiplier >= 0.0);
         assert!(proc_coefficient >= 0.0);
 
@@ -73,6 +99,7 @@ impl Hit {
         let proc_damage = self.proc_damage * damage_multiplier;
 
         Some(Self {
+            target,
             attacker_base_damage: self.attacker_base_damage,
             proc_damage,
             final_damage: proc_damage,
@@ -82,7 +109,6 @@ impl Hit {
         })
     }
 }
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AttackTargeting {
     SingleTarget,
@@ -90,36 +116,73 @@ pub enum AttackTargeting {
     Chain { max_targets: u32, radius_m: f64 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TargetId(u32);
+
+impl TargetId {
+    pub const PRIMARY: Self = Self(0);
+
+    pub const fn new(value: u32) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> u32 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetContext {
-    /// Number of other enemies currently eligible to be hit by
-    /// multi-target attacks.
-    ///
-    /// This is pretty lean, NOT representative of ROR2 YET.
-    /// TODO: Replace with Spatial/radius simulation
-    pub eligible_secondary_targets: u32,
+    primary: TargetId,
+    targets: Vec<TargetId>,
 }
 
 impl TargetContext {
-    pub const fn isolated() -> Self {
+    pub fn isolated() -> Self {
         Self {
-            eligible_secondary_targets: 0,
+            primary: TargetId::PRIMARY,
+            targets: vec![TargetId::PRIMARY],
         }
     }
 
-    pub const fn with_secondary_targets(count: u32) -> Self {
+    pub fn with_secondary_targets(count: u32) -> Self {
+        let mut targets = Vec::with_capacity(count as usize + 1);
+
+        targets.push(TargetId::PRIMARY);
+
+        targets.extend((1..=count).map(TargetId::new));
+
         Self {
-            eligible_secondary_targets: count,
+            primary: TargetId::PRIMARY,
+            targets,
         }
     }
 
-    pub fn contact_count(&self, targeting: AttackTargeting) -> u32 {
+    pub fn primary_target(&self) -> TargetId {
+        self.primary
+    }
+
+    pub fn all_targets(&self) -> &[TargetId] {
+        &self.targets
+    }
+
+    pub fn contact_targets(
+        &self,
+        source_target: TargetId,
+        targeting: AttackTargeting,
+    ) -> Vec<TargetId> {
         match targeting {
-            AttackTargeting::SingleTarget => 1,
-
-            AttackTargeting::Chain { max_targets, .. } => {
-                max_targets.min(self.eligible_secondary_targets)
+            AttackTargeting::SingleTarget => {
+                vec![source_target]
             }
+
+            AttackTargeting::Chain { max_targets, .. } => self
+                .targets
+                .iter()
+                .copied()
+                .filter(|target| *target != source_target)
+                .take(max_targets as usize)
+                .collect(),
         }
     }
 }
@@ -159,6 +222,7 @@ pub struct GeneratedHit {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bleed {
+    pub target: TargetId,
     pub duration_seconds: f64,
     pub ticks_per_second: f64,
     pub damage_per_tick: f64,

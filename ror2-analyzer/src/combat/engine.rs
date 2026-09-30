@@ -18,7 +18,7 @@ pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luc
 pub fn enumerate_direct_proc_outcomes(
     source_hit: &Hit,
     on_hit_effects: &[OnHitEffect],
-    target_context: TargetContext,
+    target_context: &TargetContext,
     luck: i32,
 ) -> Vec<ProcOutcome> {
     let mut outcomes = vec![ProcOutcome {
@@ -27,25 +27,25 @@ pub fn enumerate_direct_proc_outcomes(
     }];
 
     for effect in on_hit_effects {
-        let base_chance = match effect {
+        let (base_chance, contact_targets) = match effect {
             OnHitEffect::TotalDamage(proc_effect) => {
-                // This total-damage proc has already
-                // participated in this chain.
+                // This proc already participated in this chain.
                 if source_hit.proc_mask.contains(proc_effect.kind) {
                     continue;
                 }
 
-                // A multi-target effect with no eligible
-                // contacts cannot contribute damage or
-                // generate further proc events.
-                if target_context.contact_count(proc_effect.targeting) == 0 {
+                let targets =
+                    target_context.contact_targets(source_hit.target, proc_effect.targeting);
+
+                // No valid targets means this effect cannot generate a hit.
+                if targets.is_empty() {
                     continue;
                 }
 
-                proc_effect.base_chance
+                (proc_effect.base_chance, Some(targets))
             }
 
-            OnHitEffect::Bleed(bleed) => bleed.base_chance,
+            OnHitEffect::Bleed(bleed) => (bleed.base_chance, None),
         };
 
         let chance = effective_proc_chance(base_chance, source_hit.proc_coefficient, luck);
@@ -58,7 +58,7 @@ pub fn enumerate_direct_proc_outcomes(
                 effects,
             } = outcome;
 
-            // Proc fails.
+            // Failure branch.
             let failure_probability = probability * (1.0 - chance);
 
             if failure_probability > 0.0 {
@@ -68,37 +68,38 @@ pub fn enumerate_direct_proc_outcomes(
                 });
             }
 
-            // Proc succeeds.
+            // Success branch.
             let success_probability = probability * chance;
 
             if success_probability > 0.0 {
-                let generated_effects: Vec<GeneratedEffect> = match effect {
-                    OnHitEffect::TotalDamage(proc_effect) => {
-                        let contact_count = target_context.contact_count(proc_effect.targeting);
+                let generated_effects = match effect {
+                    OnHitEffect::TotalDamage(proc_effect) => contact_targets
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .copied()
+                        .map(|target| {
+                            let child = source_hit
+                                .spawn_total_damage_proc_on(
+                                    proc_effect.kind,
+                                    target,
+                                    proc_effect.damage_multiplier,
+                                    proc_effect.proc_coefficient,
+                                )
+                                .expect("proc should not be blocked after mask check");
 
-                        (0..contact_count)
-                            .map(|_| {
-                                let child = source_hit
-                                    .spawn_total_damage_proc(
-                                        proc_effect.kind,
-                                        proc_effect.damage_multiplier,
-                                        proc_effect.proc_coefficient,
-                                    )
-                                    .expect("proc should not be blocked after mask check");
-
-                                GeneratedEffect::Hit(GeneratedHit {
-                                    source: proc_effect.kind,
-
-                                    hit: child,
-
-                                    targeting: proc_effect.targeting,
-                                })
+                            GeneratedEffect::Hit(GeneratedHit {
+                                source: proc_effect.kind,
+                                hit: child,
+                                targeting: proc_effect.targeting,
                             })
-                            .collect()
-                    }
+                        })
+                        .collect::<Vec<_>>(),
 
                     OnHitEffect::Bleed(_) => {
                         vec![GeneratedEffect::Bleed(Bleed {
+                            target: source_hit.target,
+
                             duration_seconds: 3.0 * source_hit.proc_coefficient,
 
                             ticks_per_second: 4.0,
@@ -114,7 +115,6 @@ pub fn enumerate_direct_proc_outcomes(
 
                 next_outcomes.push(ProcOutcome {
                     probability: success_probability,
-
                     effects: success_effects,
                 });
             }
@@ -129,7 +129,7 @@ pub fn enumerate_direct_proc_outcomes(
 pub fn enumerate_proc_tree_outcomes(
     source_hit: &Hit,
     on_hit_effects: &[OnHitEffect],
-    target_context: TargetContext,
+    target_context: &TargetContext,
     luck: i32,
 ) -> Vec<CombatOutcome> {
     let direct_outcomes =

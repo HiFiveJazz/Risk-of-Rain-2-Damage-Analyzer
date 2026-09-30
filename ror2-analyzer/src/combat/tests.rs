@@ -58,7 +58,7 @@ fn recursively_enumerates_atg_and_ukulele_proc_trees() {
 
     let targets = TargetContext::with_secondary_targets(1);
 
-    let outcomes = enumerate_proc_tree_outcomes(&root, &on_hit_effects, targets, 0);
+    let outcomes = enumerate_proc_tree_outcomes(&root, &on_hit_effects, &targets, 0);
 
     // There are 9 complete mutually exclusive proc-tree outcomes.
     assert_eq!(outcomes.len(), 9);
@@ -139,7 +139,7 @@ fn atg_and_ukulele_can_proc_simultaneously() {
 
     let targets = TargetContext::with_secondary_targets(1);
 
-    let outcomes = enumerate_direct_proc_outcomes(&root, &on_hit_effects, targets, 0);
+    let outcomes = enumerate_direct_proc_outcomes(&root, &on_hit_effects, &targets, 0);
 
     assert_eq!(outcomes.len(), 4);
 
@@ -299,8 +299,9 @@ fn low_proc_coefficient_scales_bleed_chance_and_duration() {
 
     let on_hit_effects = [OnHitEffect::Bleed(BleedProc { base_chance: 0.10 })];
 
-    let outcomes =
-        enumerate_direct_proc_outcomes(&root, &on_hit_effects, TargetContext::isolated(), 0);
+    let targets = TargetContext::isolated();
+
+    let outcomes = enumerate_direct_proc_outcomes(&root, &on_hit_effects, &targets, 0);
 
     assert_eq!(outcomes.len(), 2);
 
@@ -346,6 +347,7 @@ fn low_proc_coefficient_scales_bleed_chance_and_duration() {
 
     // 5% × 12 conditional damage.
     assert_close(expected_bleed_damage, 0.6);
+    assert_eq!(bleed.target, TargetId::PRIMARY,);
 }
 
 #[test]
@@ -407,7 +409,7 @@ fn ukulele_creates_one_hit_per_available_target_up_to_cap() {
 
     let targets = TargetContext::with_secondary_targets(5);
 
-    let outcomes = enumerate_direct_proc_outcomes(&root, &on_hit_effects, targets, 0);
+    let outcomes = enumerate_direct_proc_outcomes(&root, &on_hit_effects, &targets, 0);
 
     // Guaranteed proc, so only one outcome.
     assert_eq!(outcomes.len(), 1);
@@ -419,6 +421,15 @@ fn ukulele_creates_one_hit_per_available_target_up_to_cap() {
     // Five enemies are available, but one Ukulele
     // can contact at most three.
     assert_eq!(outcome.hits().count(), 3,);
+
+    let contacted_targets: Vec<_> = outcome.hits().map(|hit| hit.hit.target).collect();
+
+    assert_eq!(
+        contacted_targets,
+        vec![TargetId::new(1), TargetId::new(2), TargetId::new(3),],
+    );
+
+    assert!(!contacted_targets.contains(&TargetId::PRIMARY));
 
     for hit in outcome.hits() {
         assert_eq!(hit.source, ProcKind::Ukulele,);
@@ -462,7 +473,7 @@ fn multi_target_ukulele_contacts_proc_independently() {
 
     let targets = TargetContext::with_secondary_targets(3);
 
-    let outcomes = enumerate_proc_tree_outcomes(&root, &on_hit_effects, targets, 0);
+    let outcomes = enumerate_proc_tree_outcomes(&root, &on_hit_effects, &targets, 0);
 
     let total_probability: f64 = outcomes.iter().map(|outcome| outcome.probability).sum();
 
@@ -474,4 +485,89 @@ fn multi_target_ukulele_contacts_proc_independently() {
         .sum();
 
     assert_close(expected_generated_damage, 111.6);
+}
+
+#[test]
+fn ukulele_contacts_have_distinct_target_ids() {
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    assert_eq!(root.target, TargetId::PRIMARY);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+        base_chance: 1.0,
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 3,
+            radius_m: 20.0,
+        },
+    })];
+
+    let targets = TargetContext::with_secondary_targets(5);
+
+    let outcomes = enumerate_direct_proc_outcomes(&root, &effects, &targets, 0);
+
+    assert_eq!(outcomes.len(), 1);
+
+    let contacted_targets: Vec<_> = outcomes[0].hits().map(|hit| hit.hit.target).collect();
+
+    assert_eq!(
+        contacted_targets,
+        vec![TargetId::new(1), TargetId::new(2), TargetId::new(3),],
+    );
+
+    assert!(!contacted_targets.contains(&TargetId::PRIMARY));
+}
+
+#[test]
+fn single_target_proc_stays_on_triggering_contact_target() {
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let targets = TargetContext::with_secondary_targets(1);
+
+    let ukulele_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+        base_chance: 1.0,
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 3,
+            radius_m: 20.0,
+        },
+    })];
+
+    let ukulele_outcomes = enumerate_direct_proc_outcomes(&root, &ukulele_effects, &targets, 0);
+
+    let ukulele_hit = ukulele_outcomes[0].hits().next().unwrap().hit.clone();
+
+    assert_eq!(ukulele_hit.target, TargetId::new(1),);
+
+    let atg_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+
+        // 5.0 × Ukulele's 0.2 PC = 100%
+        // for deterministic testing.
+        base_chance: 5.0,
+
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let outcomes = enumerate_proc_tree_outcomes(&ukulele_hit, &atg_effects, &targets, 0);
+
+    assert_eq!(outcomes.len(), 1);
+    assert_eq!(outcomes[0].effects.len(), 1);
+
+    let ResolvedEffect::Hit(atg) = &outcomes[0].effects[0] else {
+        panic!("expected AtG hit");
+    };
+
+    assert_eq!(atg.hit.target, TargetId::new(1),);
+
+    assert_eq!(atg.hit.target, ukulele_hit.target,);
 }
