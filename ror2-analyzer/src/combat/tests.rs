@@ -973,3 +973,48 @@ fn resolved_hit_applies_target_armor() {
 fn armor_cannot_reduce_positive_hit_below_one_damage() {
     assert_close(apply_armor(1.0, 10_000.0), 1.0);
 }
+
+#[test]
+fn boss_damage_modifier_only_applies_to_bosses() {
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetIsBoss,
+
+        bonus_per_stack: 0.20,
+        stacks: 1,
+    };
+
+    let boss = Target::new(TargetId::PRIMARY, 1000.0, 1000.0, 0.0, true);
+
+    let normal_enemy = Target::new(TargetId::PRIMARY, 1000.0, 1000.0, 0.0, false);
+
+    let mut boss_hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut boss_hit, &boss, &[modifier]);
+
+    assert_close(boss_hit.final_damage, 120.0);
+
+    let mut normal_hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut normal_hit, &normal_enemy, &[modifier]);
+
+    assert_close(normal_hit.final_damage, 100.0);
+}
+
+#[test]
+fn boss_damage_modifier_stacks_linearly() {
+    let boss = Target::new(TargetId::PRIMARY, 1000.0, 1000.0, 0.0, true);
+
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetIsBoss,
+
+        bonus_per_stack: 0.20,
+        stacks: 3,
+    };
+
+    let mut hit = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut hit, &boss, &[modifier]);
+
+    // 1 + 0.20 * 3 = 1.6
+    assert_close(hit.final_damage, 160.0);
+}

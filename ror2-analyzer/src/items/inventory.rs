@@ -13,6 +13,7 @@ pub enum ItemKind {
     Ukulele,
     TriTipDagger,
     Crowbar,
+    ArmorPiercingRounds,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -121,6 +122,17 @@ impl Inventory {
                 bonus_per_stack: 0.75,
 
                 stacks: crowbar_stacks,
+            });
+        }
+
+        let ap_rounds_stacks = self.stack_count(ItemKind::ArmorPiercingRounds);
+
+        if ap_rounds_stacks > 0 {
+            modifiers.push(FinalDamageModifier {
+                condition: DamageCondition::TargetIsBoss,
+
+                bonus_per_stack: 0.20,
+                stacks: ap_rounds_stacks,
             });
         }
 

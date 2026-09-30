@@ -161,3 +161,22 @@ fn inventory_builds_crowbar_modifier_from_stacks() {
 
     assert_eq!(modifier.stacks, 2,);
 }
+
+#[test]
+fn inventory_builds_armor_piercing_rounds_modifier() {
+    let mut inventory = Inventory::new();
+
+    inventory.add(ItemKind::ArmorPiercingRounds, 3);
+
+    let modifiers = inventory.final_damage_modifiers();
+
+    assert_eq!(modifiers.len(), 1,);
+
+    let modifier = modifiers[0];
+
+    assert_eq!(modifier.condition, DamageCondition::TargetIsBoss,);
+
+    assert_close(modifier.bonus_per_stack, 0.20);
+
+    assert_eq!(modifier.stacks, 3,);
+}
