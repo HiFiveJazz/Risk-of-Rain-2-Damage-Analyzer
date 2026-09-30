@@ -1,0 +1,29 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Rust tooling
+*.rs.bk
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Neovim
+.nvim.lua
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# Python leftovers / archive tooling
+__pycache__/
+*.py[cod]
+.venv/
+venv/
