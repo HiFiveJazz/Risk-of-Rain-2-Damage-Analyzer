@@ -84,11 +84,19 @@ impl Hit {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AttackTargeting {
+    SingleTarget,
+
+    Chain { max_targets: u32, radius_m: f64 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TotalDamageProc {
     pub kind: ProcKind,
     pub base_chance: f64,
     pub damage_multiplier: f64,
     pub proc_coefficient: f64,
+    pub targeting: AttackTargeting,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -106,6 +114,7 @@ pub enum OnHitEffect {
 pub struct GeneratedHit {
     pub source: ProcKind,
     pub hit: Hit,
+    pub targeting: AttackTargeting,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -157,6 +166,7 @@ impl ProcOutcome {
 pub struct ResolvedHit {
     pub source: ProcKind,
     pub hit: Hit,
+    pub targeting: AttackTargeting,
     pub effects: Vec<ResolvedEffect>,
 }
 

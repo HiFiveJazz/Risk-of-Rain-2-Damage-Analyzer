@@ -42,12 +42,17 @@ fn recursively_enumerates_atg_and_ukulele_proc_trees() {
             base_chance: 0.10,
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
+            targeting: AttackTargeting::SingleTarget,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
             base_chance: 0.25,
             damage_multiplier: 0.8,
             proc_coefficient: 0.2,
+            targeting: AttackTargeting::Chain {
+                max_targets: 3,
+                radius_m: 20.0,
+            },
         }),
     ];
 
@@ -116,12 +121,17 @@ fn atg_and_ukulele_can_proc_simultaneously() {
             base_chance: 0.10,
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
+            targeting: AttackTargeting::SingleTarget,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
             base_chance: 0.25,
             damage_multiplier: 0.8,
             proc_coefficient: 0.2,
+            targeting: AttackTargeting::Chain {
+                max_targets: 3,
+                radius_m: 20.0,
+            },
         }),
     ];
 

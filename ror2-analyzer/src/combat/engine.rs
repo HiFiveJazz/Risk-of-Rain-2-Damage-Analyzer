@@ -73,6 +73,7 @@ pub fn enumerate_direct_proc_outcomes(
                         GeneratedEffect::Hit(GeneratedHit {
                             source: proc_effect.kind,
                             hit: child,
+                            targeting: proc_effect.targeting,
                         })
                     }
 
@@ -136,9 +137,8 @@ pub fn enumerate_proc_tree_outcomes(
 
                             effects: vec![ResolvedEffect::Hit(ResolvedHit {
                                 source: generated_hit.source,
-
                                 hit: generated_hit.hit.clone(),
-
+                                targeting: generated_hit.targeting,
                                 effects: descendants.effects,
                             })],
                         })
