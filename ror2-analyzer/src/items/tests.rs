@@ -180,3 +180,33 @@ fn inventory_builds_armor_piercing_rounds_modifier() {
 
     assert_eq!(modifier.stacks, 3,);
 }
+
+#[test]
+fn armor_piercing_rounds_do_not_double_dip_through_atg() {
+    let boss = Target::new(TargetId::PRIMARY, 10_000.0, 10_000.0, 0.0, true);
+
+    let modifier = FinalDamageModifier {
+        condition: DamageCondition::TargetIsBoss,
+        bonus_per_stack: 0.20,
+        stacks: 1,
+    };
+
+    let mut root = Hit::root(10.0, 100.0, 1.0);
+
+    apply_final_damage_modifiers(&mut root, &boss, &[modifier]);
+
+    assert_close(root.proc_damage, 100.0);
+    assert_close(root.final_damage, 120.0);
+
+    let mut atg = root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    // Inherits 100 * 3, not 120 * 3.
+    assert_close(atg.proc_damage, 300.0);
+
+    apply_final_damage_modifiers(&mut atg, &boss, &[modifier]);
+
+    assert_close(atg.proc_damage, 300.0);
+    assert_close(atg.final_damage, 360.0);
+}
