@@ -122,7 +122,9 @@ fn inventory_can_drive_proc_tree_evaluation() {
 
     let root = Hit::root(10.0, 100.0, 1.0);
 
-    let outcomes = enumerate_proc_tree_outcomes(&root, &effects, 0);
+    let targets = TargetContext::with_secondary_targets(1);
+
+    let outcomes = enumerate_proc_tree_outcomes(&root, &effects, targets, 0);
 
     assert_eq!(outcomes.len(), 9);
 

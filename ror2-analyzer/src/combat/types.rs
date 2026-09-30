@@ -90,6 +90,46 @@ pub enum AttackTargeting {
     Chain { max_targets: u32, radius_m: f64 },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetContext {
+    /// Number of other enemies currently eligible to be hit by
+    /// multi-target attacks.
+    ///
+    /// This is pretty lean, NOT representative of ROR2 YET.
+    /// TODO: Replace with Spatial/radius simulation
+    pub eligible_secondary_targets: u32,
+}
+
+impl TargetContext {
+    pub const fn isolated() -> Self {
+        Self {
+            eligible_secondary_targets: 0,
+        }
+    }
+
+    pub const fn with_secondary_targets(count: u32) -> Self {
+        Self {
+            eligible_secondary_targets: count,
+        }
+    }
+
+    pub fn contact_count(&self, targeting: AttackTargeting) -> u32 {
+        match targeting {
+            AttackTargeting::SingleTarget => 1,
+
+            AttackTargeting::Chain { max_targets, .. } => {
+                max_targets.min(self.eligible_secondary_targets)
+            }
+        }
+    }
+}
+
+impl Default for TargetContext {
+    fn default() -> Self {
+        Self::isolated()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TotalDamageProc {
     pub kind: ProcKind,
