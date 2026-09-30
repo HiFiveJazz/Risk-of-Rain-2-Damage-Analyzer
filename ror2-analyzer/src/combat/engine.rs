@@ -1,5 +1,19 @@
 use super::types::*;
 
+pub fn armor_damage_multiplier(armor: f64) -> f64 {
+    1.0 - armor / (100.0 + armor.abs())
+}
+
+pub fn apply_armor(damage: f64, armor: f64) -> f64 {
+    if damage <= 0.0 {
+        return 0.0;
+    }
+
+    let modified = damage * armor_damage_multiplier(armor);
+
+    modified.max(1.0)
+}
+
 pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luck: i32) -> f64 {
     assert!(base_chance >= 0.0);
     assert!(source_proc_coefficient >= 0.0);
@@ -13,6 +27,46 @@ pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luc
 
         n => chance.powi((-n) + 1),
     }
+}
+
+pub fn begin_combat_branches(
+    root_hit: &Hit,
+    on_hit_effects: &[OnHitEffect],
+    target_context: &TargetContext,
+    modifiers: &[FinalDamageModifier],
+    luck: i32,
+) -> Vec<CombatBranch> {
+    // Every combat calculation begins from its own state.
+    let mut post_hit_targets = target_context.clone();
+
+    // Damage happens before on-hit effects are processed.
+    let root_resolution = resolve_and_apply_hit(root_hit, &mut post_hit_targets, modifiers);
+
+    let proc_outcomes = enumerate_direct_proc_outcomes(
+        &root_resolution.hit,
+        on_hit_effects,
+        &post_hit_targets,
+        luck,
+    );
+
+    proc_outcomes
+        .into_iter()
+        .map(|outcome| {
+            CombatBranch {
+                probability: outcome.probability,
+
+                root_resolution: root_resolution.clone(),
+
+                // Critical:
+                //
+                // every probabilistic branch receives
+                // its own independent target state.
+                targets: post_hit_targets.clone(),
+
+                pending_effects: outcome.effects,
+            }
+        })
+        .collect()
 }
 
 pub fn resolve_and_apply_hit(
@@ -33,6 +87,7 @@ pub fn resolve_and_apply_hit(
             .expect("hit target must exist in target context");
 
         apply_final_damage_modifiers(&mut resolved_hit, target, modifiers);
+        resolved_hit.final_damage = apply_armor(resolved_hit.final_damage, target.armor());
     }
 
     let target = target_context

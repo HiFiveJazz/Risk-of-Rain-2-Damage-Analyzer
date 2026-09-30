@@ -764,3 +764,212 @@ fn hit_resolution_detects_kills_and_actual_damage_dealt() {
 
     assert!(resolution.killed_target());
 }
+
+#[test]
+fn root_damage_is_applied_before_proc_branches_are_created() {
+    let primary = Target::new(TargetId::PRIMARY, 1000.0, 1000.0, 0.0, false);
+
+    let targets = TargetContext::new(primary, vec![Target::full_health(TargetId::new(1), 1000.0)]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Atg,
+            base_chance: 0.10,
+            damage_multiplier: 3.0,
+            proc_coefficient: 1.0,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Ukulele,
+            base_chance: 0.25,
+            damage_multiplier: 0.8,
+            proc_coefficient: 0.2,
+
+            targeting: AttackTargeting::Chain {
+                max_targets: 3,
+                radius_m: 20.0,
+            },
+        }),
+    ];
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    // Same four direct outcomes as before:
+    //
+    // neither
+    // AtG
+    // Ukulele
+    // both
+    assert_eq!(branches.len(), 4);
+
+    let total_probability: f64 = branches.iter().map(|branch| branch.probability).sum();
+
+    assert_close(total_probability, 1.0);
+
+    // Root hit happened BEFORE branching, so every
+    // branch starts with the primary at 900 HP.
+    for branch in &branches {
+        let primary = branch.targets.target(TargetId::PRIMARY).unwrap();
+
+        assert_close(primary.health(), 900.0);
+
+        assert_close(branch.root_resolution.hit.final_damage, 100.0);
+    }
+}
+
+#[test]
+fn combat_branches_have_independent_target_state() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::Bleed(BleedProc { base_chance: 0.5 })];
+
+    let mut branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(branches.len(), 2);
+
+    // Both branches initially see:
+    //
+    // 1000 - 100 = 900 HP
+    for branch in &branches {
+        assert_close(
+            branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+            900.0,
+        );
+    }
+
+    // Mutate only branch 0.
+    branches[0]
+        .targets
+        .target_mut(TargetId::PRIMARY)
+        .unwrap()
+        .apply_damage(200.0);
+
+    assert_close(
+        branches[0]
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        700.0,
+    );
+
+    // Branch 1 MUST remain unchanged.
+    assert_close(
+        branches[1]
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        900.0,
+    );
+}
+
+#[test]
+fn crowbar_root_damage_is_applied_before_pending_atg() {
+    let primary = Target::new(TargetId::PRIMARY, 950.0, 1000.0, 0.0, false);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+
+        // Guaranteed purely for this test.
+        base_chance: 1.0,
+
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let crowbar = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 1,
+    };
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[crowbar], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    let branch = &branches[0];
+
+    // Root qualified for Crowbar:
+    //
+    // 100 * 1.75 = 175
+    assert_close(branch.root_resolution.hit.final_damage, 175.0);
+
+    // 950 - 175 = 775.
+    assert_close(
+        branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+        775.0,
+    );
+
+    let atg = branch.pending_hits().next().unwrap();
+
+    // Still inherits proc_damage, NOT final_damage:
+    //
+    // 100 * 3 = 300
+    assert_close(atg.hit.proc_damage, 300.0);
+
+    // AtG has not landed yet.
+    assert_close(
+        branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+        775.0,
+    );
+}
+
+#[test]
+fn positive_armor_reduces_damage() {
+    assert_close(armor_damage_multiplier(100.0), 0.5);
+
+    assert_close(apply_armor(100.0, 100.0), 50.0);
+}
+
+#[test]
+fn negative_armor_increases_damage() {
+    assert_close(armor_damage_multiplier(-100.0), 1.5);
+
+    assert_close(apply_armor(100.0, -100.0), 150.0);
+}
+
+#[test]
+fn resolved_hit_applies_target_armor() {
+    let primary = Target::new(
+        TargetId::PRIMARY,
+        1000.0,
+        1000.0,
+        // 50% damage reduction.
+        100.0,
+        false,
+    );
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let hit = Hit::root(10.0, 100.0, 1.0);
+
+    let resolution = resolve_and_apply_hit(&hit, &mut targets, &[]);
+
+    // Proc inheritance remains 100.
+    assert_close(resolution.hit.proc_damage, 100.0);
+
+    // But this target only receives 50.
+    assert_close(resolution.hit.final_damage, 50.0);
+
+    assert_close(resolution.damage_dealt(), 50.0);
+
+    assert_close(resolution.target_health_after, 950.0);
+}
+
+#[test]
+fn armor_cannot_reduce_positive_hit_below_one_damage() {
+    assert_close(apply_armor(1.0, 10_000.0), 1.0);
+}
