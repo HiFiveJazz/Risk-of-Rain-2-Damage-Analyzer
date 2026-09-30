@@ -51,6 +51,54 @@ pub struct TotalDamageProc {
     pub proc_coefficient: f64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResolvedHit {
+    pub source: ProcKind,
+    pub hit: Hit,
+    pub effects: Vec<ResolvedEffect>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResolvedEffect {
+    Hit(ResolvedHit),
+    Bleed(Bleed),
+}
+
+impl ResolvedEffect {
+    pub fn total_damage(&self) -> f64 {
+        match self {
+            ResolvedEffect::Hit(resolved_hit) => {
+                resolved_hit.hit.final_damage
+                    + resolved_hit
+                        .effects
+                        .iter()
+                        .map(ResolvedEffect::total_damage)
+                        .sum::<f64>()
+            }
+
+            ResolvedEffect::Bleed(bleed) => bleed.nominal_total_damage(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CombatOutcome {
+    pub probability: f64,
+    pub effects: Vec<ResolvedEffect>,
+}
+
+impl CombatOutcome {
+    /// Damage produced by proc/status effects, excluding the original hit.
+    pub fn total_generated_damage(&self) -> f64 {
+        self.effects.iter().map(ResolvedEffect::total_damage).sum()
+    }
+
+    /// Total damage including the original hit.
+    pub fn total_damage_with_root(&self, root: &Hit) -> f64 {
+        root.final_damage + self.total_generated_damage()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BleedProc {
     pub base_chance: f64,
@@ -281,17 +329,191 @@ pub fn enumerate_direct_proc_outcomes(
     outcomes
 }
 
+pub fn enumerate_proc_tree_outcomes(
+    source_hit: &Hit,
+    on_hit_effects: &[OnHitEffect],
+    luck: i32,
+) -> Vec<CombatOutcome> {
+    let direct_outcomes = enumerate_direct_proc_outcomes(source_hit, on_hit_effects, luck);
+
+    let mut resolved_outcomes = Vec::new();
+
+    for direct_outcome in direct_outcomes {
+        // Begin with the probability of this particular set of direct
+        // proc results.
+        let mut combinations = vec![CombatOutcome {
+            probability: direct_outcome.probability,
+            effects: Vec::new(),
+        }];
+
+        // Every directly generated effect may itself have multiple
+        // possible descendant outcomes.
+        for generated_effect in direct_outcome.effects {
+            let alternatives = match generated_effect {
+                GeneratedEffect::Bleed(bleed) => {
+                    vec![CombatOutcome {
+                        probability: 1.0,
+                        effects: vec![ResolvedEffect::Bleed(bleed)],
+                    }]
+                }
+
+                GeneratedEffect::Hit(generated_hit) => {
+                    let descendant_outcomes =
+                        enumerate_proc_tree_outcomes(&generated_hit.hit, on_hit_effects, luck);
+
+                    descendant_outcomes
+                        .into_iter()
+                        .map(|descendants| CombatOutcome {
+                            probability: descendants.probability,
+
+                            effects: vec![ResolvedEffect::Hit(ResolvedHit {
+                                source: generated_hit.source,
+                                hit: generated_hit.hit.clone(),
+                                effects: descendants.effects,
+                            })],
+                        })
+                        .collect()
+                }
+            };
+
+            // Cartesian product:
+            //
+            // If AtG has 2 possible futures and Ukulele has 2 possible
+            // futures, their sibling branches together have 4 possible
+            // combinations.
+            let mut next_combinations = Vec::new();
+
+            for combination in &combinations {
+                for alternative in &alternatives {
+                    let mut effects = combination.effects.clone();
+
+                    effects.extend(alternative.effects.clone());
+
+                    next_combinations.push(CombatOutcome {
+                        probability: combination.probability * alternative.probability,
+
+                        effects,
+                    });
+                }
+            }
+
+            combinations = next_combinations;
+        }
+
+        resolved_outcomes.extend(combinations);
+    }
+
+    resolved_outcomes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const EPSILON: f64 = 1e-12;
+    // Helpers
 
     fn assert_close(actual: f64, expected: f64) {
         assert!(
             (actual - expected).abs() < EPSILON,
             "expected {expected}, got {actual}"
         );
+    }
+
+    fn contains_chain(effects: &[ResolvedEffect], chain: &[ProcKind]) -> bool {
+        if chain.is_empty() {
+            return true;
+        }
+
+        effects.iter().any(|effect| {
+            let ResolvedEffect::Hit(hit) = effect else {
+                return false;
+            };
+
+            if hit.source != chain[0] {
+                return false;
+            }
+
+            if chain.len() == 1 {
+                return true;
+            }
+
+            contains_chain(&hit.effects, &chain[1..])
+        })
+    }
+
+    #[test]
+    fn recursively_enumerates_atg_and_ukulele_proc_trees() {
+        let root = Hit::root(10.0, 100.0, 1.0);
+
+        let on_hit_effects = [
+            OnHitEffect::TotalDamage(TotalDamageProc {
+                kind: ProcKind::Atg,
+                base_chance: 0.10,
+                damage_multiplier: 3.0,
+                proc_coefficient: 1.0,
+            }),
+            OnHitEffect::TotalDamage(TotalDamageProc {
+                kind: ProcKind::Ukulele,
+                base_chance: 0.25,
+                damage_multiplier: 0.8,
+                proc_coefficient: 0.2,
+            }),
+        ];
+
+        let outcomes = enumerate_proc_tree_outcomes(&root, &on_hit_effects, 0);
+
+        // There are 9 complete mutually exclusive proc-tree outcomes.
+        assert_eq!(outcomes.len(), 9);
+
+        let total_probability: f64 = outcomes.iter().map(|outcome| outcome.probability).sum();
+
+        assert_close(total_probability, 1.0);
+
+        // Probability that an AtG branch eventually produces Ukulele:
+        //
+        // 0.10 * 0.25 = 0.025
+        let atg_to_ukulele_probability: f64 = outcomes
+            .iter()
+            .filter(|outcome| contains_chain(&outcome.effects, &[ProcKind::Atg, ProcKind::Ukulele]))
+            .map(|outcome| outcome.probability)
+            .sum();
+
+        assert_close(atg_to_ukulele_probability, 0.025);
+
+        // Probability that a Ukulele branch eventually produces AtG:
+        //
+        // 0.25 * (0.10 * 0.20)
+        // = 0.005
+        let ukulele_to_atg_probability: f64 = outcomes
+            .iter()
+            .filter(|outcome| contains_chain(&outcome.effects, &[ProcKind::Ukulele, ProcKind::Atg]))
+            .map(|outcome| outcome.probability)
+            .sum();
+
+        assert_close(ukulele_to_atg_probability, 0.005);
+
+        // Expected generated proc damage:
+        //
+        // Root AtG:
+        //   10% * 300 = 30
+        //
+        // Root Ukulele:
+        //   25% * 80 = 20
+        //
+        // AtG -> Ukulele:
+        //   2.5% * 240 = 6
+        //
+        // Ukulele -> AtG:
+        //   0.5% * 240 = 1.2
+        //
+        // Total = 57.2
+        let expected_generated_damage: f64 = outcomes
+            .iter()
+            .map(|outcome| outcome.probability * outcome.total_generated_damage())
+            .sum();
+
+        assert_close(expected_generated_damage, 57.2);
     }
 
     #[test]
