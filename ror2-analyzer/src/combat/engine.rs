@@ -66,7 +66,7 @@ pub fn advance_branch(
         // Timing is still "immediate" for now.
         // We'll replace this with item-specific timing next.
         for effect in proc_outcome.effects {
-            child_branch.pending_events.schedule_at(event_time, effect);
+            schedule_generated_effect(&mut child_branch.pending_events, event_time, effect);
         }
 
         branches.push(child_branch);
@@ -116,7 +116,7 @@ pub fn begin_combat_branches(
             let mut pending_events = EventQueue::new();
 
             for effect in outcome.effects {
-                pending_events.schedule_at(Duration::ZERO, effect);
+                schedule_generated_effect(&mut pending_events, Duration::ZERO, effect);
             }
 
             CombatBranch {
@@ -187,6 +187,22 @@ pub fn apply_final_damage_modifiers(
     // proc_damage stays untouched so TOTAL-damage
     // child effects do not double-dip.
     hit.final_damage = hit.proc_damage * multiplier;
+}
+
+fn schedule_generated_effect(
+    queue: &mut EventQueue,
+    current_time: Duration,
+    effect: GeneratedEffect,
+) {
+    let delay = match &effect {
+        GeneratedEffect::Hit(hit) => hit.timing.delay(),
+
+        // Bleed timing becomes its own system later.
+        // For now this preserves existing behavior.
+        GeneratedEffect::Bleed(_) => Duration::ZERO,
+    };
+
+    queue.schedule_after(current_time, delay, effect);
 }
 
 pub fn enumerate_direct_proc_outcomes(
@@ -266,6 +282,7 @@ pub fn enumerate_direct_proc_outcomes(
                                 source: proc_effect.kind,
                                 hit: child,
                                 targeting: proc_effect.targeting,
+                                timing: proc_effect.timing,
                             })
                         })
                         .collect::<Vec<_>>(),

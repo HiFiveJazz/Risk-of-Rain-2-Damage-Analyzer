@@ -7,6 +7,22 @@ pub enum ProcKind {
     StickyBomb,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventTiming {
+    Immediate,
+
+    FixedDelay(Duration),
+}
+
+impl EventTiming {
+    pub const fn delay(self) -> Duration {
+        match self {
+            Self::Immediate => Duration::ZERO,
+            Self::FixedDelay(delay) => delay,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CombatBranch {
     /// Probability of reaching this branch.
@@ -384,6 +400,7 @@ pub struct TotalDamageProc {
     pub damage_multiplier: f64,
     pub proc_coefficient: f64,
     pub targeting: AttackTargeting,
+    pub timing: EventTiming,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -402,6 +419,7 @@ pub struct GeneratedHit {
     pub source: ProcKind,
     pub hit: Hit,
     pub targeting: AttackTargeting,
+    pub timing: EventTiming,
 }
 
 #[derive(Debug, Clone, PartialEq)]

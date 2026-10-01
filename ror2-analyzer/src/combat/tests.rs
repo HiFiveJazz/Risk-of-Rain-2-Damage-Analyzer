@@ -44,6 +44,7 @@ fn recursively_enumerates_atg_and_ukulele_proc_trees() {
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
@@ -54,6 +55,7 @@ fn recursively_enumerates_atg_and_ukulele_proc_trees() {
                 max_targets: 3,
                 radius_m: 20.0,
             },
+            timing: EventTiming::Immediate,
         }),
     ];
 
@@ -125,6 +127,7 @@ fn atg_and_ukulele_can_proc_simultaneously() {
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
@@ -135,6 +138,7 @@ fn atg_and_ukulele_can_proc_simultaneously() {
                 max_targets: 3,
                 radius_m: 20.0,
             },
+            timing: EventTiming::Immediate,
         }),
     ];
 
@@ -406,6 +410,7 @@ fn ukulele_creates_one_hit_per_available_target_up_to_cap() {
             max_targets: 3,
             radius_m: 20.0,
         },
+        timing: EventTiming::Immediate,
     })];
 
     let targets = TargetContext::with_secondary_targets(5);
@@ -459,6 +464,7 @@ fn multi_target_ukulele_contacts_proc_independently() {
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
@@ -469,6 +475,7 @@ fn multi_target_ukulele_contacts_proc_independently() {
                 max_targets: 3,
                 radius_m: 20.0,
             },
+            timing: EventTiming::Immediate,
         }),
     ];
 
@@ -504,6 +511,7 @@ fn ukulele_contacts_have_distinct_target_ids() {
             max_targets: 3,
             radius_m: 20.0,
         },
+        timing: EventTiming::Immediate,
     })];
 
     let targets = TargetContext::with_secondary_targets(5);
@@ -538,6 +546,7 @@ fn single_target_proc_stays_on_triggering_contact_target() {
             max_targets: 3,
             radius_m: 20.0,
         },
+        timing: EventTiming::Immediate,
     })];
 
     let ukulele_outcomes = enumerate_direct_proc_outcomes(&root, &ukulele_effects, &targets, 0);
@@ -557,6 +566,7 @@ fn single_target_proc_stays_on_triggering_contact_target() {
         proc_coefficient: 1.0,
 
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let outcomes = enumerate_proc_tree_outcomes(&ukulele_hit, &atg_effects, &targets, 0);
@@ -781,6 +791,7 @@ fn root_damage_is_applied_before_proc_branches_are_created() {
             damage_multiplier: 3.0,
             proc_coefficient: 1.0,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
         OnHitEffect::TotalDamage(TotalDamageProc {
             kind: ProcKind::Ukulele,
@@ -792,6 +803,7 @@ fn root_damage_is_applied_before_proc_branches_are_created() {
                 max_targets: 3,
                 radius_m: 20.0,
             },
+            timing: EventTiming::Immediate,
         }),
     ];
 
@@ -888,6 +900,7 @@ fn crowbar_root_damage_is_applied_before_pending_atg() {
         damage_multiplier: 3.0,
         proc_coefficient: 1.0,
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let crowbar = FinalDamageModifier {
@@ -1043,6 +1056,7 @@ fn event_queue_returns_events_in_chronological_batches() {
             source: ProcKind::Atg,
             hit: atg,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1052,6 +1066,7 @@ fn event_queue_returns_events_in_chronological_batches() {
             source: ProcKind::Ukulele,
             hit: ukulele,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1100,6 +1115,7 @@ fn simultaneous_events_are_returned_in_one_batch() {
             source: ProcKind::Atg,
             hit: atg,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1109,6 +1125,7 @@ fn simultaneous_events_are_returned_in_one_batch() {
             source: ProcKind::Ukulele,
             hit: ukulele,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1141,6 +1158,7 @@ fn combat_branch_starts_with_generated_effects_scheduled_at_zero() {
         proc_coefficient: 1.0,
 
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
@@ -1188,6 +1206,7 @@ fn advancing_branch_resolves_pending_hit() {
         proc_coefficient: 1.0,
 
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
@@ -1238,6 +1257,7 @@ fn advancing_pending_atg_observes_updated_crowbar_state() {
         damage_multiplier: 3.0,
         proc_coefficient: 1.0,
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let crowbar = FinalDamageModifier {
@@ -1304,6 +1324,7 @@ fn advancing_hit_can_split_into_new_probability_branches() {
         damage_multiplier: 3.0,
         proc_coefficient: 1.0,
         targeting: AttackTargeting::SingleTarget,
+        timing: EventTiming::Immediate,
     })];
 
     let initial = begin_combat_branches(&root, &root_effects, &targets, &[], 0);
@@ -1320,6 +1341,7 @@ fn advancing_hit_can_split_into_new_probability_branches() {
             max_targets: 3,
             radius_m: 20.0,
         },
+        timing: EventTiming::Immediate,
     })];
 
     let advanced = advance_branch(&initial[0], &child_effects, &[], 0).unwrap();
@@ -1370,6 +1392,7 @@ fn advance_branch_refuses_to_guess_simultaneous_hit_order() {
             source: ProcKind::Atg,
             hit: atg,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1379,6 +1402,7 @@ fn advance_branch_refuses_to_guess_simultaneous_hit_order() {
             source: ProcKind::Ukulele,
             hit: uke,
             targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
         }),
     );
 
@@ -1405,4 +1429,168 @@ fn advance_branch_refuses_to_guess_simultaneous_hit_order() {
     let result = advance_branch(&branch, &[], &[], 0);
 
     assert_eq!(result, Err(AdvanceError::SimultaneousEvents { count: 2 },),);
+}
+
+#[test]
+fn fixed_delay_proc_is_scheduled_in_the_future() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(500)),
+    })];
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    let event = branches[0].pending_events.iter().next().unwrap();
+
+    assert_eq!(event.time, Duration::from_millis(500),);
+
+    // Root landed, AtG has not.
+    assert_close(
+        branches[0]
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        900.0,
+    );
+}
+
+#[test]
+fn child_event_delay_is_relative_to_parent_landing_time() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let atg_effect = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(500)),
+    })];
+
+    let initial = begin_combat_branches(&root, &atg_effect, &targets, &[], 0);
+
+    assert_eq!(initial.len(), 1);
+
+    let uke_effect = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+
+        // Guaranteed for the timing test.
+        base_chance: 1.0,
+
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 1,
+            radius_m: 20.0,
+        },
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(250)),
+    })];
+
+    // AtG lands at t = 500 ms.
+    let advanced = advance_branch(&initial[0], &uke_effect, &[], 0).unwrap();
+
+    assert_eq!(advanced.len(), 1);
+
+    assert_eq!(advanced[0].current_time, Duration::from_millis(500),);
+
+    let uke_event = advanced[0].pending_events.iter().next().unwrap();
+
+    // 500 ms parent landing
+    // + 250 ms child delay
+    // = 750 ms.
+    assert_eq!(uke_event.time, Duration::from_millis(750),);
+}
+
+#[test]
+fn different_proc_delays_produce_deterministic_event_order() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Atg,
+            base_chance: 1.0,
+            damage_multiplier: 3.0,
+            proc_coefficient: 1.0,
+
+            targeting: AttackTargeting::SingleTarget,
+
+            timing: EventTiming::FixedDelay(Duration::from_millis(500)),
+        }),
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Ukulele,
+            base_chance: 1.0,
+            damage_multiplier: 0.8,
+            proc_coefficient: 0.2,
+
+            targeting: AttackTargeting::Chain {
+                max_targets: 1,
+                radius_m: 20.0,
+            },
+
+            timing: EventTiming::FixedDelay(Duration::from_millis(100)),
+        }),
+    ];
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    assert_eq!(branches[0].pending_events.len(), 2,);
+
+    let mut queue = branches[0].pending_events.clone();
+
+    let (first_time, first_batch) = queue.pop_next_batch().unwrap();
+
+    assert_eq!(first_time, Duration::from_millis(100),);
+
+    assert_eq!(first_batch.len(), 1,);
+
+    let GeneratedEffect::Hit(first) = &first_batch[0].effect else {
+        panic!("expected hit");
+    };
+
+    assert_eq!(first.source, ProcKind::Ukulele,);
+
+    let (second_time, second_batch) = queue.pop_next_batch().unwrap();
+
+    assert_eq!(second_time, Duration::from_millis(500),);
+
+    assert_eq!(second_batch.len(), 1,);
+
+    let GeneratedEffect::Hit(second) = &second_batch[0].effect else {
+        panic!("expected hit");
+    };
+
+    assert_eq!(second.source, ProcKind::Atg,);
 }

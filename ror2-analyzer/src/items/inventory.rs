@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    AttackTargeting,
+    AttackTargeting, EventTiming,
     combat::{
         BleedProc, DamageCondition, FinalDamageModifier, OnHitEffect, ProcKind, TotalDamageProc,
     },
@@ -73,6 +73,7 @@ impl Inventory {
                 proc_coefficient: 1.0,
 
                 targeting: AttackTargeting::SingleTarget,
+                timing: EventTiming::Immediate,
             }));
         }
 
@@ -95,6 +96,8 @@ impl Inventory {
                     max_targets,
                     radius_m,
                 },
+
+                timing: EventTiming::Immediate,
             }));
         }
 
