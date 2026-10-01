@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Duration;
 
 const EPSILON: f64 = 1e-12;
 // Helpers
@@ -1167,4 +1168,241 @@ fn combat_branch_starts_with_generated_effects_scheduled_at_zero() {
         branch.targets.target(TargetId::PRIMARY).unwrap().health(),
         900.0,
     );
+}
+
+#[test]
+fn advancing_branch_resolves_pending_hit() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+
+        // Root always procs AtG.
+        base_chance: 1.0,
+
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    let branch = &branches[0];
+
+    // Root already dealt 100.
+    assert_close(
+        branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+        900.0,
+    );
+
+    assert_eq!(branch.pending_events.len(), 1,);
+
+    let advanced = advance_branch(branch, &effects, &[], 0).unwrap();
+
+    assert_eq!(advanced.len(), 1);
+
+    let advanced = &advanced[0];
+
+    // AtG now lands for 300.
+    assert_close(
+        advanced.targets.target(TargetId::PRIMARY).unwrap().health(),
+        600.0,
+    );
+
+    assert_eq!(advanced.resolved_hits.len(), 1,);
+
+    assert_close(advanced.resolved_hits[0].hit.final_damage, 300.0);
+
+    // AtG cannot proc itself again because of the mask.
+    assert!(advanced.pending_events.is_empty());
+}
+
+#[test]
+fn advancing_pending_atg_observes_updated_crowbar_state() {
+    let primary = Target::new(TargetId::PRIMARY, 950.0, 1000.0, 0.0, false);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let crowbar = FinalDamageModifier {
+        condition: DamageCondition::TargetHealthAbove { fraction: 0.90 },
+
+        bonus_per_stack: 0.75,
+        stacks: 1,
+    };
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[crowbar], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    // Root:
+    //
+    // 100 * 1.75 = 175
+    //
+    // 950 -> 775
+    assert_close(
+        branches[0]
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        775.0,
+    );
+
+    let advanced = advance_branch(&branches[0], &effects, &[crowbar], 0).unwrap();
+
+    assert_eq!(advanced.len(), 1);
+
+    let atg = &advanced[0].resolved_hits[0];
+
+    // Target was at 77.5% when AtG landed,
+    // so Crowbar is OFF.
+    assert_close(atg.hit.proc_damage, 300.0);
+
+    assert_close(atg.hit.final_damage, 300.0);
+
+    assert_close(
+        advanced[0]
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        475.0,
+    );
+}
+
+#[test]
+fn advancing_hit_can_split_into_new_probability_branches() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 1000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    // Only AtG is available to the root initially.
+    let root_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let initial = begin_combat_branches(&root, &root_effects, &targets, &[], 0);
+
+    assert_eq!(initial.len(), 1);
+
+    let child_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+        base_chance: 0.25,
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 3,
+            radius_m: 20.0,
+        },
+    })];
+
+    let advanced = advance_branch(&initial[0], &child_effects, &[], 0).unwrap();
+
+    // Uke fails / Uke succeeds.
+    assert_eq!(advanced.len(), 2);
+
+    let total_probability: f64 = advanced.iter().map(|branch| branch.probability).sum();
+
+    assert_close(total_probability, 1.0);
+
+    let no_uke = advanced
+        .iter()
+        .find(|branch| branch.pending_events.is_empty())
+        .unwrap();
+
+    assert_close(no_uke.probability, 0.75);
+
+    let uke = advanced
+        .iter()
+        .find(|branch| branch.pending_events.len() == 1)
+        .unwrap();
+
+    assert_close(uke.probability, 0.25);
+}
+
+#[test]
+fn advance_branch_refuses_to_guess_simultaneous_hit_order() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let atg = root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    let uke = root
+        .spawn_total_damage_proc(ProcKind::Ukulele, 0.8, 0.2)
+        .unwrap();
+
+    let mut queue = EventQueue::new();
+
+    queue.schedule_at(
+        Duration::ZERO,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Atg,
+            hit: atg,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    queue.schedule_at(
+        Duration::ZERO,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Ukulele,
+            hit: uke,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    let dummy_resolution = HitResolution {
+        hit: root.clone(),
+        target_health_before: 1000.0,
+        target_health_after: 900.0,
+    };
+
+    let branch = CombatBranch {
+        probability: 1.0,
+
+        root_resolution: dummy_resolution,
+
+        resolved_hits: Vec::new(),
+
+        targets,
+
+        current_time: Duration::ZERO,
+
+        pending_events: queue,
+    };
+
+    let result = advance_branch(&branch, &[], &[], 0);
+
+    assert_eq!(result, Err(AdvanceError::SimultaneousEvents { count: 2 },),);
 }

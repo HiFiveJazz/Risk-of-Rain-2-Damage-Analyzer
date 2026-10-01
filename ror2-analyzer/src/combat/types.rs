@@ -14,6 +14,7 @@ pub struct CombatBranch {
 
     /// Resolution of the hit that created this branch.
     pub root_resolution: HitResolution,
+    pub resolved_hits: Vec<HitResolution>,
 
     /// This branch's independent copy of target state.
     pub targets: TargetContext,
@@ -22,6 +23,20 @@ pub struct CombatBranch {
     /// been resolved yet.
     pub current_time: Duration,
     pub pending_events: EventQueue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AdvanceError {
+    NoPendingEvents,
+
+    /// We deliberately don't invent an ordering between
+    /// events that occur at the same instant.
+    SimultaneousEvents {
+        count: usize,
+    },
+
+    /// Bleed is not yet represented as individual timed ticks.
+    UnsupportedBleedEvent,
 }
 
 impl CombatBranch {

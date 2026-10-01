@@ -15,6 +15,66 @@ pub fn apply_armor(damage: f64, armor: f64) -> f64 {
     modified.max(1.0)
 }
 
+pub fn advance_branch(
+    branch: &CombatBranch,
+    on_hit_effects: &[OnHitEffect],
+    modifiers: &[FinalDamageModifier],
+    luck: i32,
+) -> Result<Vec<CombatBranch>, AdvanceError> {
+    // Work on a clone so an error does not destroy the
+    // caller's original branch.
+    let mut base_branch = branch.clone();
+
+    let Some((event_time, batch)) = base_branch.pending_events.pop_next_batch() else {
+        return Err(AdvanceError::NoPendingEvents);
+    };
+
+    if batch.len() != 1 {
+        return Err(AdvanceError::SimultaneousEvents { count: batch.len() });
+    }
+
+    let event = batch.into_iter().next().expect("batch length was checked");
+
+    base_branch.current_time = event_time;
+
+    let generated_hit = match event.effect {
+        GeneratedEffect::Hit(hit) => hit,
+
+        GeneratedEffect::Bleed(_) => {
+            return Err(AdvanceError::UnsupportedBleedEvent);
+        }
+    };
+
+    // The attack actually lands now.
+    let resolution = resolve_and_apply_hit(&generated_hit.hit, &mut base_branch.targets, modifiers);
+
+    base_branch.resolved_hits.push(resolution.clone());
+
+    // On-hit effects are checked AFTER this hit has
+    // modified the target state.
+    let proc_outcomes =
+        enumerate_direct_proc_outcomes(&resolution.hit, on_hit_effects, &base_branch.targets, luck);
+
+    let mut branches = Vec::new();
+
+    for proc_outcome in proc_outcomes {
+        let mut child_branch = base_branch.clone();
+
+        // Conditional probability of this new proc outcome.
+        child_branch.probability *= proc_outcome.probability;
+
+        // Timing is still "immediate" for now.
+        // We'll replace this with item-specific timing next.
+        for effect in proc_outcome.effects {
+            child_branch.pending_events.schedule_at(event_time, effect);
+        }
+
+        branches.push(child_branch);
+    }
+
+    Ok(branches)
+}
+
 pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luck: i32) -> f64 {
     assert!(base_chance >= 0.0);
     assert!(source_proc_coefficient >= 0.0);
@@ -63,6 +123,7 @@ pub fn begin_combat_branches(
                 probability: outcome.probability,
 
                 root_resolution: root_resolution.clone(),
+                resolved_hits: Vec::new(),
 
                 // Critical:
                 //
