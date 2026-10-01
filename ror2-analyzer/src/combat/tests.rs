@@ -1018,3 +1018,153 @@ fn boss_damage_modifier_stacks_linearly() {
     // 1 + 0.20 * 3 = 1.6
     assert_close(hit.final_damage, 160.0);
 }
+
+#[test]
+fn event_queue_returns_events_in_chronological_batches() {
+    use std::time::Duration;
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let atg = root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    let ukulele = root
+        .spawn_total_damage_proc(ProcKind::Ukulele, 0.8, 0.2)
+        .unwrap();
+
+    let mut queue = EventQueue::new();
+
+    // Intentionally insert these out of order.
+    queue.schedule_at(
+        Duration::from_millis(500),
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Atg,
+            hit: atg,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    queue.schedule_at(
+        Duration::from_millis(100),
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Ukulele,
+            hit: ukulele,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    let (time, batch) = queue.pop_next_batch().unwrap();
+
+    assert_eq!(time, Duration::from_millis(100),);
+
+    assert_eq!(batch.len(), 1);
+
+    let GeneratedEffect::Hit(hit) = &batch[0].effect else {
+        panic!("expected hit");
+    };
+
+    assert_eq!(hit.source, ProcKind::Ukulele,);
+
+    let (time, batch) = queue.pop_next_batch().unwrap();
+
+    assert_eq!(time, Duration::from_millis(500),);
+
+    assert_eq!(batch.len(), 1);
+
+    assert!(queue.is_empty());
+}
+
+#[test]
+fn simultaneous_events_are_returned_in_one_batch() {
+    use std::time::Duration;
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let atg = root
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    let ukulele = root
+        .spawn_total_damage_proc(ProcKind::Ukulele, 0.8, 0.2)
+        .unwrap();
+
+    let mut queue = EventQueue::new();
+
+    let time = Duration::from_millis(250);
+
+    queue.schedule_at(
+        time,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Atg,
+            hit: atg,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    queue.schedule_at(
+        time,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Ukulele,
+            hit: ukulele,
+            targeting: AttackTargeting::SingleTarget,
+        }),
+    );
+
+    let (next_time, batch) = queue.pop_next_batch().unwrap();
+
+    assert_eq!(next_time, time,);
+
+    assert_eq!(batch.len(), 2,);
+
+    assert!(queue.is_empty());
+}
+
+#[test]
+fn combat_branch_starts_with_generated_effects_scheduled_at_zero() {
+    use std::time::Duration;
+
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+
+        // Guaranteed.
+        base_chance: 1.0,
+
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+    })];
+
+    let branches = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(branches.len(), 1);
+
+    let branch = &branches[0];
+
+    assert_eq!(branch.current_time, Duration::ZERO,);
+
+    assert_eq!(branch.pending_events.len(), 1,);
+
+    let event = branch.pending_events.iter().next().unwrap();
+
+    assert_eq!(event.time, Duration::ZERO,);
+
+    let GeneratedEffect::Hit(hit) = &event.effect else {
+        panic!("expected hit");
+    };
+
+    assert_eq!(hit.source, ProcKind::Atg,);
+
+    // AtG has spawned but not landed.
+    assert_close(
+        branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+        900.0,
+    );
+}

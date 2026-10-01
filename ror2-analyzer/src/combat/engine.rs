@@ -1,4 +1,5 @@
 use super::types::*;
+use std::time::Duration;
 
 pub fn armor_damage_multiplier(armor: f64) -> f64 {
     1.0 - armor / (100.0 + armor.abs())
@@ -52,6 +53,12 @@ pub fn begin_combat_branches(
     proc_outcomes
         .into_iter()
         .map(|outcome| {
+            let mut pending_events = EventQueue::new();
+
+            for effect in outcome.effects {
+                pending_events.schedule_at(Duration::ZERO, effect);
+            }
+
             CombatBranch {
                 probability: outcome.probability,
 
@@ -62,8 +69,9 @@ pub fn begin_combat_branches(
                 // every probabilistic branch receives
                 // its own independent target state.
                 targets: post_hit_targets.clone(),
+                current_time: Duration::ZERO,
 
-                pending_effects: outcome.effects,
+                pending_events,
             }
         })
         .collect()
