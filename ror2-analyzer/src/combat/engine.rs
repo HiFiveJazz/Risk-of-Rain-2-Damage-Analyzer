@@ -75,6 +75,56 @@ pub fn advance_branch(
     Ok(branches)
 }
 
+pub fn run_branch_until_blocked(
+    branch: &CombatBranch,
+    on_hit_effects: &[OnHitEffect],
+    modifiers: &[FinalDamageModifier],
+    luck: i32,
+) -> Vec<BranchRunResult> {
+    let mut work = vec![branch.clone()];
+    let mut results = Vec::new();
+
+    while let Some(current) = work.pop() {
+        if current.pending_events.is_empty() {
+            results.push(BranchRunResult {
+                branch: current,
+                reason: BranchStopReason::Complete,
+            });
+
+            continue;
+        }
+
+        match advance_branch(&current, on_hit_effects, modifiers, luck) {
+            Ok(children) => {
+                work.extend(children);
+            }
+
+            Err(AdvanceError::NoPendingEvents) => {
+                results.push(BranchRunResult {
+                    branch: current,
+                    reason: BranchStopReason::Complete,
+                });
+            }
+
+            Err(AdvanceError::SimultaneousEvents { count }) => {
+                results.push(BranchRunResult {
+                    branch: current,
+                    reason: BranchStopReason::SimultaneousEvents { count },
+                });
+            }
+
+            Err(AdvanceError::UnsupportedBleedEvent) => {
+                results.push(BranchRunResult {
+                    branch: current,
+                    reason: BranchStopReason::UnsupportedBleedEvent,
+                });
+            }
+        }
+    }
+
+    results
+}
+
 pub fn effective_proc_chance(base_chance: f64, source_proc_coefficient: f64, luck: i32) -> f64 {
     assert!(base_chance >= 0.0);
     assert!(source_proc_coefficient >= 0.0);

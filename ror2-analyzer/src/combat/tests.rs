@@ -1594,3 +1594,215 @@ fn different_proc_delays_produce_deterministic_event_order() {
 
     assert_eq!(second.source, ProcKind::Atg,);
 }
+
+#[test]
+fn branch_runner_resolves_complete_proc_chain() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let root_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(100)),
+    })];
+
+    let initial = begin_combat_branches(&root, &root_effects, &targets, &[], 0);
+
+    assert_eq!(initial.len(), 1);
+
+    let child_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+        base_chance: 1.0,
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 1,
+            radius_m: 20.0,
+        },
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(50)),
+    })];
+
+    let results = run_branch_until_blocked(&initial[0], &child_effects, &[], 0);
+
+    assert_eq!(results.len(), 1);
+
+    let result = &results[0];
+
+    assert_eq!(result.reason, BranchStopReason::Complete,);
+
+    assert_close(result.branch.probability, 1.0);
+
+    // AtG + Ukulele landed.
+    assert_eq!(result.branch.resolved_hits.len(), 2,);
+
+    // Root:
+    // 2000 - 100 = 1900
+    //
+    // AtG:
+    // 1900 - 300 = 1600
+    assert_close(
+        result
+            .branch
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        1600.0,
+    );
+
+    // Ukulele:
+    //
+    // 300 * 0.8 = 240
+    //
+    // 2000 - 240 = 1760
+    assert_close(
+        result
+            .branch
+            .targets
+            .target(TargetId::new(1))
+            .unwrap()
+            .health(),
+        1760.0,
+    );
+
+    // AtG at 100 ms,
+    // Uke at 150 ms.
+    assert_eq!(result.branch.current_time, Duration::from_millis(150),);
+
+    assert!(result.branch.pending_events.is_empty());
+}
+
+#[test]
+fn branch_runner_preserves_probability_branches() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let root_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 1.0,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(100)),
+    })];
+
+    let initial = begin_combat_branches(&root, &root_effects, &targets, &[], 0);
+
+    let child_effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Ukulele,
+
+        // AtG has PC 1.0, so this is
+        // exactly a 25% roll.
+        base_chance: 0.25,
+
+        damage_multiplier: 0.8,
+        proc_coefficient: 0.2,
+
+        targeting: AttackTargeting::Chain {
+            max_targets: 1,
+            radius_m: 20.0,
+        },
+
+        timing: EventTiming::FixedDelay(Duration::from_millis(50)),
+    })];
+
+    let results = run_branch_until_blocked(&initial[0], &child_effects, &[], 0);
+
+    assert_eq!(results.len(), 2);
+
+    assert!(
+        results
+            .iter()
+            .all(|result| { result.reason == BranchStopReason::Complete })
+    );
+
+    let total_probability: f64 = results.iter().map(|result| result.branch.probability).sum();
+
+    assert_close(total_probability, 1.0);
+
+    let no_uke = results
+        .iter()
+        .find(|result| result.branch.resolved_hits.len() == 1)
+        .unwrap();
+
+    assert_close(no_uke.branch.probability, 0.75);
+
+    let uke = results
+        .iter()
+        .find(|result| result.branch.resolved_hits.len() == 2)
+        .unwrap();
+
+    assert_close(uke.branch.probability, 0.25);
+}
+
+#[test]
+fn branch_runner_stops_at_simultaneous_events() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Atg,
+            base_chance: 1.0,
+            damage_multiplier: 3.0,
+            proc_coefficient: 1.0,
+
+            targeting: AttackTargeting::SingleTarget,
+
+            timing: EventTiming::Immediate,
+        }),
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Ukulele,
+            base_chance: 1.0,
+            damage_multiplier: 0.8,
+            proc_coefficient: 0.2,
+
+            targeting: AttackTargeting::Chain {
+                max_targets: 1,
+                radius_m: 20.0,
+            },
+
+            timing: EventTiming::Immediate,
+        }),
+    ];
+
+    let initial = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    assert_eq!(initial.len(), 1);
+
+    let results = run_branch_until_blocked(&initial[0], &effects, &[], 0);
+
+    assert_eq!(results.len(), 1);
+
+    assert_eq!(
+        results[0].reason,
+        BranchStopReason::SimultaneousEvents { count: 2 },
+    );
+
+    // Crucially, neither pending hit was consumed.
+    assert_eq!(results[0].branch.pending_events.len(), 2,);
+}

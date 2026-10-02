@@ -23,6 +23,21 @@ impl EventTiming {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BranchStopReason {
+    Complete,
+
+    SimultaneousEvents { count: usize },
+
+    UnsupportedBleedEvent,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BranchRunResult {
+    pub branch: CombatBranch,
+    pub reason: BranchStopReason,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CombatBranch {
     /// Probability of reaching this branch.
