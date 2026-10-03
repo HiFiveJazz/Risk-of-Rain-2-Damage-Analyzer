@@ -1,6 +1,30 @@
 use super::types::*;
 use std::time::Duration;
 
+pub fn simulate_attack(
+    root_hit: &Hit,
+    on_hit_effects: &[OnHitEffect],
+    target_context: &TargetContext,
+    modifiers: &[FinalDamageModifier],
+    luck: i32,
+) -> SimulationResult {
+    let initial_branches =
+        begin_combat_branches(root_hit, on_hit_effects, target_context, modifiers, luck);
+
+    let mut results = Vec::new();
+
+    for branch in initial_branches {
+        results.extend(run_branch_until_blocked(
+            &branch,
+            on_hit_effects,
+            modifiers,
+            luck,
+        ));
+    }
+
+    SimulationResult { branches: results }
+}
+
 pub fn armor_damage_multiplier(armor: f64) -> f64 {
     1.0 - armor / (100.0 + armor.abs())
 }
@@ -21,55 +45,90 @@ pub fn advance_branch(
     modifiers: &[FinalDamageModifier],
     luck: i32,
 ) -> Result<Vec<CombatBranch>, AdvanceError> {
-    // Work on a clone so an error does not destroy the
-    // caller's original branch.
     let mut base_branch = branch.clone();
 
     let Some((event_time, batch)) = base_branch.pending_events.pop_next_batch() else {
         return Err(AdvanceError::NoPendingEvents);
     };
 
-    if batch.len() != 1 {
-        return Err(AdvanceError::SimultaneousEvents { count: batch.len() });
-    }
+    let batch_len = batch.len();
 
-    let event = batch.into_iter().next().expect("batch length was checked");
+    let mut generated_hits = Vec::with_capacity(batch_len);
+
+    let mut seen_targets = std::collections::HashSet::new();
+
+    for event in batch {
+        match event.effect {
+            GeneratedEffect::Hit(hit) => {
+                // Two simultaneous hits against the same
+                // target may be order-sensitive.
+                if !seen_targets.insert(hit.hit.target) {
+                    return Err(AdvanceError::SimultaneousEvents { count: batch_len });
+                }
+
+                generated_hits.push(hit);
+            }
+
+            GeneratedEffect::Bleed(_) => {
+                return Err(AdvanceError::UnsupportedBleedEvent);
+            }
+        }
+    }
 
     base_branch.current_time = event_time;
 
-    let generated_hit = match event.effect {
-        GeneratedEffect::Hit(hit) => hit,
+    let mut resolutions = Vec::with_capacity(generated_hits.len());
 
-        GeneratedEffect::Bleed(_) => {
-            return Err(AdvanceError::UnsupportedBleedEvent);
+    // These hits all land at the same time, but they affect
+    // distinct targets, so their mutation order is irrelevant.
+    for generated_hit in generated_hits {
+        let resolution =
+            resolve_and_apply_hit(&generated_hit.hit, &mut base_branch.targets, modifiers);
+
+        base_branch.resolved_hits.push(resolution.clone());
+
+        resolutions.push(resolution);
+    }
+
+    // All simultaneous damage has now been applied.
+    //
+    // Generate the possible proc outcomes for each hit
+    // against that resulting target state.
+    let proc_outcome_sets: Vec<Vec<ProcOutcome>> = resolutions
+        .iter()
+        .map(|resolution| {
+            enumerate_direct_proc_outcomes(
+                &resolution.hit,
+                on_hit_effects,
+                &base_branch.targets,
+                luck,
+            )
+        })
+        .collect();
+
+    // Start with the state after the entire simultaneous batch.
+    let mut branches = vec![base_branch];
+
+    // Cartesian-product the possible proc outcomes from
+    // every hit in the batch.
+    for proc_outcomes in proc_outcome_sets {
+        let mut next_branches = Vec::new();
+
+        for branch in branches {
+            for proc_outcome in &proc_outcomes {
+                let mut child_branch = branch.clone();
+
+                child_branch.probability *= proc_outcome.probability;
+
+                for effect in proc_outcome.effects.iter().cloned() {
+                    schedule_generated_effect(&mut child_branch.pending_events, event_time, effect);
+                }
+
+                next_branches.push(child_branch);
+            }
         }
-    };
 
-    // The attack actually lands now.
-    let resolution = resolve_and_apply_hit(&generated_hit.hit, &mut base_branch.targets, modifiers);
-
-    base_branch.resolved_hits.push(resolution.clone());
-
-    // On-hit effects are checked AFTER this hit has
-    // modified the target state.
-    let proc_outcomes =
-        enumerate_direct_proc_outcomes(&resolution.hit, on_hit_effects, &base_branch.targets, luck);
-
-    let mut branches = Vec::new();
-
-    for proc_outcome in proc_outcomes {
-        let mut child_branch = base_branch.clone();
-
-        // Conditional probability of this new proc outcome.
-        child_branch.probability *= proc_outcome.probability;
-
-        // Timing is still "immediate" for now.
-        // We'll replace this with item-specific timing next.
-        for effect in proc_outcome.effects {
-            schedule_generated_effect(&mut child_branch.pending_events, event_time, effect);
-        }
-
-        branches.push(child_branch);
+        branches = next_branches;
     }
 
     Ok(branches)

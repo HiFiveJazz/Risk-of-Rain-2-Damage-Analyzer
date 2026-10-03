@@ -1,5 +1,56 @@
 use std::{collections::HashSet, time::Duration};
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SimulationResult {
+    pub branches: Vec<BranchRunResult>,
+}
+
+impl SimulationResult {
+    pub fn probability_mass(&self) -> f64 {
+        self.branches
+            .iter()
+            .map(|result| result.branch.probability)
+            .sum()
+    }
+
+    pub fn completed_probability_mass(&self) -> f64 {
+        self.branches
+            .iter()
+            .filter(|result| result.reason == BranchStopReason::Complete)
+            .map(|result| result.branch.probability)
+            .sum()
+    }
+
+    pub fn blocked_probability_mass(&self) -> f64 {
+        self.branches
+            .iter()
+            .filter(|result| result.reason != BranchStopReason::Complete)
+            .map(|result| result.branch.probability)
+            .sum()
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.branches
+            .iter()
+            .all(|result| result.reason == BranchStopReason::Complete)
+    }
+
+    /// Expected damage from everything the simulator
+    /// successfully resolved.
+    ///
+    /// If the simulation is blocked, this is only partial.
+    pub fn expected_resolved_damage(&self) -> f64 {
+        self.branches
+            .iter()
+            .map(|result| result.branch.probability * result.branch.total_damage_dealt())
+            .sum()
+    }
+
+    pub fn expected_complete_damage(&self) -> Option<f64> {
+        self.is_complete().then(|| self.expected_resolved_damage())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProcKind {
     Atg,
@@ -71,6 +122,15 @@ pub enum AdvanceError {
 }
 
 impl CombatBranch {
+    pub fn total_damage_dealt(&self) -> f64 {
+        self.root_resolution.damage_dealt()
+            + self
+                .resolved_hits
+                .iter()
+                .map(HitResolution::damage_dealt)
+                .sum::<f64>()
+    }
+
     pub fn pending_hits(&self) -> impl Iterator<Item = &GeneratedHit> {
         self.pending_events
             .iter()

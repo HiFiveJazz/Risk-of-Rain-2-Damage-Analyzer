@@ -1755,7 +1755,99 @@ fn branch_runner_preserves_probability_branches() {
 }
 
 #[test]
-fn branch_runner_stops_at_simultaneous_events() {
+fn branch_runner_stops_when_simultaneous_hits_share_a_target() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let mut targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    // Put the branch into a realistic post-root state.
+    let root_resolution = resolve_and_apply_hit(&root, &mut targets, &[]);
+
+    assert_close(targets.target(TargetId::PRIMARY).unwrap().health(), 1900.0);
+
+    // Both child hits deliberately target PRIMARY.
+    let atg = root_resolution
+        .hit
+        .spawn_total_damage_proc(ProcKind::Atg, 3.0, 1.0)
+        .unwrap();
+
+    let ukulele = root_resolution
+        .hit
+        .spawn_total_damage_proc(ProcKind::Ukulele, 0.8, 0.2)
+        .unwrap();
+
+    assert_eq!(atg.target, TargetId::PRIMARY,);
+
+    assert_eq!(ukulele.target, TargetId::PRIMARY,);
+
+    let mut queue = EventQueue::new();
+
+    queue.schedule_at(
+        Duration::ZERO,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Atg,
+            hit: atg,
+            targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
+        }),
+    );
+
+    queue.schedule_at(
+        Duration::ZERO,
+        GeneratedEffect::Hit(GeneratedHit {
+            source: ProcKind::Ukulele,
+            hit: ukulele,
+            targeting: AttackTargeting::SingleTarget,
+            timing: EventTiming::Immediate,
+        }),
+    );
+
+    let branch = CombatBranch {
+        probability: 1.0,
+
+        root_resolution,
+
+        resolved_hits: Vec::new(),
+
+        targets,
+
+        current_time: Duration::ZERO,
+
+        pending_events: queue,
+    };
+
+    let results = run_branch_until_blocked(&branch, &[], &[], 0);
+
+    assert_eq!(results.len(), 1,);
+
+    assert_eq!(
+        results[0].reason,
+        BranchStopReason::SimultaneousEvents { count: 2 },
+    );
+
+    // Neither hit was consumed because their
+    // relative order is unresolved.
+    assert_eq!(results[0].branch.pending_events.len(), 2,);
+
+    // No child hit landed.
+    assert_eq!(results[0].branch.resolved_hits.len(), 0,);
+
+    // Only the root has damaged the target.
+    assert_close(
+        results[0]
+            .branch
+            .targets
+            .target(TargetId::PRIMARY)
+            .unwrap()
+            .health(),
+        1900.0,
+    );
+}
+
+#[test]
+fn simultaneous_hits_on_distinct_targets_can_resolve_together() {
     let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
 
     let secondary = Target::full_health(TargetId::new(1), 2000.0);
@@ -1794,15 +1886,208 @@ fn branch_runner_stops_at_simultaneous_events() {
 
     assert_eq!(initial.len(), 1);
 
-    let results = run_branch_until_blocked(&initial[0], &effects, &[], 0);
+    assert_eq!(initial[0].pending_events.len(), 2,);
+
+    // Don't allow the children to generate any further
+    // on-hit effects in this test.
+    let advanced = advance_branch(&initial[0], &[], &[], 0).unwrap();
+
+    assert_eq!(advanced.len(), 1);
+
+    let branch = &advanced[0];
+
+    // Root:
+    // 2000 - 100 = 1900
+    //
+    // AtG:
+    // 1900 - 300 = 1600
+    assert_close(
+        branch.targets.target(TargetId::PRIMARY).unwrap().health(),
+        1600.0,
+    );
+
+    // Ukulele:
+    // 2000 - 80 = 1920
+    assert_close(
+        branch.targets.target(TargetId::new(1)).unwrap().health(),
+        1920.0,
+    );
+
+    assert_eq!(branch.resolved_hits.len(), 2,);
+
+    assert!(branch.pending_events.is_empty());
+}
+
+#[test]
+fn branch_runner_resolves_independent_simultaneous_hits() {
+    let primary = Target::full_health(TargetId::PRIMARY, 2000.0);
+
+    let secondary = Target::full_health(TargetId::new(1), 2000.0);
+
+    let targets = TargetContext::new(primary, vec![secondary]);
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Atg,
+            base_chance: 1.0,
+            damage_multiplier: 3.0,
+            proc_coefficient: 1.0,
+
+            targeting: AttackTargeting::SingleTarget,
+
+            timing: EventTiming::Immediate,
+        }),
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Ukulele,
+            base_chance: 1.0,
+            damage_multiplier: 0.8,
+            proc_coefficient: 0.2,
+
+            targeting: AttackTargeting::Chain {
+                max_targets: 1,
+                radius_m: 20.0,
+            },
+
+            timing: EventTiming::Immediate,
+        }),
+    ];
+
+    let initial = begin_combat_branches(&root, &effects, &targets, &[], 0);
+
+    let results = run_branch_until_blocked(
+        &initial[0],
+        // No further child proc effects.
+        &[],
+        &[],
+        0,
+    );
 
     assert_eq!(results.len(), 1);
 
-    assert_eq!(
-        results[0].reason,
-        BranchStopReason::SimultaneousEvents { count: 2 },
-    );
+    assert_eq!(results[0].reason, BranchStopReason::Complete,);
 
-    // Crucially, neither pending hit was consumed.
-    assert_eq!(results[0].branch.pending_events.len(), 2,);
+    assert_eq!(results[0].branch.resolved_hits.len(), 2,);
+
+    assert!(results[0].branch.pending_events.is_empty());
+}
+
+#[test]
+fn simulate_attack_handles_attack_with_no_procs() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let simulation = simulate_attack(&root, &[], &targets, &[], 0);
+
+    assert_eq!(simulation.branches.len(), 1,);
+
+    assert!(simulation.is_complete());
+
+    assert_close(simulation.probability_mass(), 1.0);
+
+    assert_close(simulation.completed_probability_mass(), 1.0);
+
+    assert_close(simulation.blocked_probability_mass(), 0.0);
+
+    assert_close(simulation.expected_resolved_damage(), 100.0);
+
+    assert_close(simulation.expected_complete_damage().unwrap(), 100.0);
+}
+
+#[test]
+fn simulate_attack_calculates_expected_atg_damage() {
+    let primary = Target::full_health(TargetId::PRIMARY, 10_000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    let effects = [OnHitEffect::TotalDamage(TotalDamageProc {
+        kind: ProcKind::Atg,
+        base_chance: 0.10,
+        damage_multiplier: 3.0,
+        proc_coefficient: 1.0,
+
+        targeting: AttackTargeting::SingleTarget,
+
+        timing: EventTiming::Immediate,
+    })];
+
+    let simulation = simulate_attack(&root, &effects, &targets, &[], 0);
+
+    assert!(simulation.is_complete());
+
+    assert_eq!(simulation.branches.len(), 2,);
+
+    assert_close(simulation.probability_mass(), 1.0);
+
+    // 90%:
+    //
+    // root only = 100
+    //
+    // 10%:
+    //
+    // root + AtG = 100 + 300 = 400
+    //
+    // E[D]
+    // = 0.9(100) + 0.1(400)
+    // = 130
+    assert_close(simulation.expected_complete_damage().unwrap(), 130.0);
+}
+
+#[test]
+fn blocked_simulation_does_not_report_complete_expected_damage() {
+    let primary = Target::full_health(TargetId::PRIMARY, 10_000.0);
+
+    let targets = TargetContext::new(primary, Vec::new());
+
+    let root = Hit::root(10.0, 100.0, 1.0);
+
+    // Synthetic example:
+    //
+    // two guaranteed immediate procs,
+    // both hitting the same target.
+    let effects = [
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Atg,
+            base_chance: 1.0,
+            damage_multiplier: 3.0,
+            proc_coefficient: 1.0,
+
+            targeting: AttackTargeting::SingleTarget,
+
+            timing: EventTiming::Immediate,
+        }),
+        OnHitEffect::TotalDamage(TotalDamageProc {
+            kind: ProcKind::Ukulele,
+            base_chance: 1.0,
+            damage_multiplier: 0.8,
+            proc_coefficient: 0.2,
+
+            // Deliberately synthetic.
+            targeting: AttackTargeting::SingleTarget,
+
+            timing: EventTiming::Immediate,
+        }),
+    ];
+
+    let simulation = simulate_attack(&root, &effects, &targets, &[], 0);
+
+    assert!(!simulation.is_complete());
+
+    assert_close(simulation.probability_mass(), 1.0);
+
+    assert_close(simulation.completed_probability_mass(), 0.0);
+
+    assert_close(simulation.blocked_probability_mass(), 1.0);
+
+    // Only the root has resolved.
+    assert_close(simulation.expected_resolved_damage(), 100.0);
+
+    // Critically, don't pretend 100 is the complete answer.
+    assert_eq!(simulation.expected_complete_damage(), None,);
 }
