@@ -1,5 +1,32 @@
 use std::{collections::HashSet, time::Duration};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Position {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+impl Position {
+    pub const ORIGIN: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
+
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
+        Self { x, y, z }
+    }
+
+    pub fn distance_to(self, other: Self) -> f64 {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        let dz = self.z - other.z;
+
+        (dx * dx + dy * dy + dz * dz).sqrt()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimulationResult {
     pub branches: Vec<BranchRunResult>,
@@ -275,6 +302,36 @@ pub enum AttackTargeting {
     SingleTarget,
 
     Chain { max_targets: u32, radius_m: f64 },
+
+    Explosion { radius_m: f64, falloff: AreaFalloff },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AreaFalloff {
+    None,
+    SweetSpot,
+}
+
+impl AreaFalloff {
+    pub fn multiplier(self, distance: f64, radius: f64) -> f64 {
+        assert!(distance >= 0.0);
+        assert!(radius > 0.0);
+
+        match self {
+            Self::None => 1.0,
+
+            // RoR2 sweet-spot falloff:
+            // inner 50% = 100%
+            // outer 50% = 25%
+            Self::SweetSpot => {
+                if distance <= radius * 0.5 {
+                    1.0
+                } else {
+                    0.25
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -299,6 +356,7 @@ pub struct Target {
     max_health: f64,
     armor: f64,
     is_boss: bool,
+    position: Position,
 }
 
 impl Target {
@@ -313,7 +371,17 @@ impl Target {
             max_health,
             armor,
             is_boss,
+            position: Position::ORIGIN,
         }
+    }
+
+    pub fn position(&self) -> Position {
+        self.position
+    }
+
+    pub fn with_position(mut self, position: Position) -> Self {
+        self.position = position;
+        self
     }
 
     pub fn full_health(id: TargetId, max_health: f64) -> Self {
@@ -412,13 +480,64 @@ impl TargetContext {
                 vec![source_target]
             }
 
-            AttackTargeting::Chain { max_targets, .. } => self
-                .targets
-                .iter()
-                .filter(|target| target.id() != source_target)
-                .map(Target::id)
-                .take(max_targets as usize)
-                .collect(),
+            AttackTargeting::Chain {
+                max_targets,
+                radius_m,
+            } => {
+                let source_position = self
+                    .target(source_target)
+                    .expect("source target must exist in target context")
+                    .position();
+
+                self.targets
+                    .iter()
+                    // Ukulele does not hit the target that triggered it.
+                    .filter(|target| target.id() != source_target)
+                    // Only targets inside the chain radius are eligible.
+                    .filter(|target| source_position.distance_to(target.position()) <= radius_m)
+                    .map(Target::id)
+                    .take(max_targets as usize)
+                    .collect()
+            }
+
+            AttackTargeting::Explosion { radius_m, .. } => {
+                let center = self
+                    .target(source_target)
+                    .expect("explosion source target must exist")
+                    .position();
+
+                self.targets
+                    .iter()
+                    .filter(|target| center.distance_to(target.position()) <= radius_m)
+                    .map(Target::id)
+                    .collect()
+            }
+        }
+    }
+    pub fn targeting_damage_multiplier(
+        &self,
+        source_target: TargetId,
+        target: TargetId,
+        targeting: AttackTargeting,
+    ) -> f64 {
+        match targeting {
+            AttackTargeting::SingleTarget | AttackTargeting::Chain { .. } => 1.0,
+
+            AttackTargeting::Explosion { radius_m, falloff } => {
+                let center = self
+                    .target(source_target)
+                    .expect("explosion source target must exist")
+                    .position();
+
+                let target_position = self
+                    .target(target)
+                    .expect("explosion target must exist")
+                    .position();
+
+                let distance = center.distance_to(target_position);
+
+                falloff.multiplier(distance, radius_m)
+            }
         }
     }
 }

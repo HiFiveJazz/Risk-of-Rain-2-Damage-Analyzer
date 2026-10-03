@@ -2091,3 +2091,100 @@ fn blocked_simulation_does_not_report_complete_expected_damage() {
     // Critically, don't pretend 100 is the complete answer.
     assert_eq!(simulation.expected_complete_damage(), None,);
 }
+
+#[test]
+fn position_calculates_three_dimensional_distance() {
+    let a = Position::new(0.0, 0.0, 0.0);
+
+    let b = Position::new(3.0, 4.0, 12.0);
+
+    assert_close(a.distance_to(b), 13.0);
+}
+
+#[test]
+fn chain_targeting_respects_radius() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0).with_position(Position::ORIGIN);
+
+    let near =
+        Target::full_health(TargetId::new(1), 1000.0).with_position(Position::new(10.0, 0.0, 0.0));
+
+    let edge =
+        Target::full_health(TargetId::new(2), 1000.0).with_position(Position::new(20.0, 0.0, 0.0));
+
+    let far =
+        Target::full_health(TargetId::new(3), 1000.0).with_position(Position::new(20.1, 0.0, 0.0));
+
+    let targets = TargetContext::new(primary, vec![near, edge, far]);
+
+    let contacts = targets.contact_targets(
+        TargetId::PRIMARY,
+        AttackTargeting::Chain {
+            max_targets: 3,
+            radius_m: 20.0,
+        },
+    );
+
+    assert_eq!(contacts, vec![TargetId::new(1), TargetId::new(2),],);
+}
+
+#[test]
+fn explosion_targeting_includes_targets_within_radius() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0).with_position(Position::ORIGIN);
+
+    let near =
+        Target::full_health(TargetId::new(1), 1000.0).with_position(Position::new(5.0, 0.0, 0.0));
+
+    let edge =
+        Target::full_health(TargetId::new(2), 1000.0).with_position(Position::new(10.0, 0.0, 0.0));
+
+    let outside =
+        Target::full_health(TargetId::new(3), 1000.0).with_position(Position::new(10.1, 0.0, 0.0));
+
+    let targets = TargetContext::new(primary, vec![near, edge, outside]);
+
+    let contacts = targets.contact_targets(
+        TargetId::PRIMARY,
+        AttackTargeting::Explosion {
+            radius_m: 10.0,
+            falloff: AreaFalloff::SweetSpot,
+        },
+    );
+
+    assert_eq!(
+        contacts,
+        vec![TargetId::PRIMARY, TargetId::new(1), TargetId::new(2),],
+    );
+}
+
+#[test]
+fn sweet_spot_explosion_uses_quarter_damage_in_outer_half() {
+    let primary = Target::full_health(TargetId::PRIMARY, 1000.0).with_position(Position::ORIGIN);
+
+    let inner =
+        Target::full_health(TargetId::new(1), 1000.0).with_position(Position::new(5.0, 0.0, 0.0));
+
+    let outer =
+        Target::full_health(TargetId::new(2), 1000.0).with_position(Position::new(7.5, 0.0, 0.0));
+
+    let targets = TargetContext::new(primary, vec![inner, outer]);
+
+    let targeting = AttackTargeting::Explosion {
+        radius_m: 10.0,
+        falloff: AreaFalloff::SweetSpot,
+    };
+
+    assert_close(
+        targets.targeting_damage_multiplier(TargetId::PRIMARY, TargetId::PRIMARY, targeting),
+        1.0,
+    );
+
+    assert_close(
+        targets.targeting_damage_multiplier(TargetId::PRIMARY, TargetId::new(1), targeting),
+        1.0,
+    );
+
+    assert_close(
+        targets.targeting_damage_multiplier(TargetId::PRIMARY, TargetId::new(2), targeting),
+        0.25,
+    );
+}

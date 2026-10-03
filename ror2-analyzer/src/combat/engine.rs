@@ -378,11 +378,20 @@ pub fn enumerate_direct_proc_outcomes(
                         .iter()
                         .copied()
                         .map(|target| {
+                            let targeting_multiplier = target_context.targeting_damage_multiplier(
+                                source_hit.target,
+                                target,
+                                proc_effect.targeting,
+                            );
+
+                            let damage_multiplier =
+                                proc_effect.damage_multiplier * targeting_multiplier;
+
                             let child = source_hit
                                 .spawn_total_damage_proc_on(
                                     proc_effect.kind,
                                     target,
-                                    proc_effect.damage_multiplier,
+                                    damage_multiplier,
                                     proc_effect.proc_coefficient,
                                 )
                                 .expect("proc should not be blocked after mask check");
